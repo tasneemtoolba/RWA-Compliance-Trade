@@ -53,7 +53,7 @@ Fixed the root blocker: contracts now support self-service registration and real
 **UI Copy:**
 - "Encrypting locally in your browser..."
 - "Saving ciphertext + expiry onchain..."
-- "✅ Profile saved. Now go to Trade → Run check."
+- "Profile saved. Now go to Trade → Run check."
 
 ### 2. Trade Page (`app/trade/page.tsx`)
 
@@ -95,16 +95,16 @@ Fixed the root blocker: contracts now support self-service registration and real
 
 1. **Wallet A (Eligible):**
    - Get Verified → EU + Accredited + 1K bucket → Save
-   - Trade → Run check → ✅ Eligible
+   - Trade → Run check → Eligible
    - Swap button enabled
 
 2. **Wallet B (Not Eligible):**
    - Get Verified → US + Not Accredited + 100 bucket → Save
-   - Trade → Run check → ❌ Not Eligible (Reason: NOT_ELIGIBLE)
+   - Trade → Run check → Not Eligible (Reason: NOT_ELIGIBLE)
    - Swap button disabled
 
 3. **No Profile:**
-   - Trade → Run check → ❌ Not Eligible (Reason: NO_CREDENTIAL)
+   - Trade → Run check → Not Eligible (Reason: NO_CREDENTIAL)
    - CTA: "Go to Get Verified →"
 
 ## Next Steps
@@ -139,7 +139,7 @@ Fixed the root blocker: contracts now support self-service registration and real
 
 ## Key Fixes
 
-✅ **Root blocker fixed:** Users can now register themselves (not onlyOwner)
-✅ **Real verification:** Verifier does actual bitmap checks (not always true)
-✅ **Pool configured:** Deploy script sets pool rule mask automatically
-✅ **UI updated:** Verify page uses new functions, shows correct copy
+- **Root blocker fixed:** Users can now register themselves (not onlyOwner)
+- **Real verification:** Verifier does actual bitmap checks (not always true)
+- **Pool configured:** Deploy script sets pool rule mask automatically
+- **UI updated:** Verify page uses new functions, shows correct copy

@@ -1,6 +1,6 @@
 # Demo Simulation Mode Implementation
 
-## ✅ Completed
+## Completed
 
 ### Core Infrastructure
 
@@ -54,20 +54,20 @@
    - Updated `AppShell.tsx` - shows "Demo (Simulated)" badge in navbar
 
 9. **Updated Pages**
-   - ✅ `app/verify/page.tsx` - Full demo mode support
+   - `app/verify/page.tsx` - Full demo mode support
      - Form: region, accredited, bucket, expiry
      - Encrypt & Save button works
      - Shows success state with tx hash
      - Runs hook check after save
      - Shows eligibility preview
-   - ✅ `app/trade/page.tsx` - Full demo mode support
+   - `app/trade/page.tsx` - Full demo mode support
      - Run check button works
      - Shows eligibility status
      - Swap simulation works
      - Hook audit history displayed
      - Error handling for blocked swaps
 
-## 🔄 Remaining Work
+## Remaining Work
 
 ### Pages to Update
 
@@ -129,11 +129,11 @@ When `NEXT_PUBLIC_DEMO_MODE=false`:
 3. Update service layer to use real contract addresses from env
 
 ### Demo Mode Benefits
-- ✅ No contract deployments needed
-- ✅ Full interactive demo for judges
-- ✅ All flows work end-to-end
-- ✅ Transparent about simulation (badges + banners)
-- ✅ Easy to switch to real contracts later
+- No contract deployments needed
+- Full interactive demo for judges
+- All flows work end-to-end
+- Transparent about simulation (badges + banners)
+- Easy to switch to real contracts later
 
 ## Key Features Demonstrated
 

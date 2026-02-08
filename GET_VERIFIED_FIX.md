@@ -6,7 +6,7 @@ Fixed the "Get Verified" and "Trade" flow to allow users to self-register and up
 
 ## Contract Status
 
-✅ **Contracts already support self-service registration:**
+**Contracts already support self-service registration:**
 - `UserRegistry.setMyEncryptedProfile()` is **public** (not `onlyOwner`)
 - `FHEVerifier.verify()` already implements bitmap check: `(userBitmap & ruleMask) == ruleMask`
 - `ComplianceHook.check()` already provides view function for eligibility checking
@@ -26,7 +26,7 @@ Fixed the "Get Verified" and "Trade" flow to allow users to self-register and up
   - Encrypts bitmap (demo: `abi.encode(uint256)`, production: real FHE)
   - Calls `setMyEncryptedProfile(ciphertext, expiry)`
 - Success state showing:
-  - ✅ Profile saved message
+  - Profile saved message
   - Transaction hash link
   - Ciphertext preview
   - Expiry timestamp
@@ -45,8 +45,8 @@ Fixed the "Get Verified" and "Trade" flow to allow users to self-register and up
 
 **Updated:**
 - Better eligibility messaging:
-  - ✅ Eligible: "Hook would allow swaps for this pool"
-  - ❌ Not eligible: "Hook would block swaps: rule mismatch" + reason code
+  - Eligible: "Hook would allow swaps for this pool"
+  - Not eligible: "Hook would block swaps: rule mismatch" + reason code
 - Swap button state:
   - Enabled when `eligible === true`
   - Disabled with helper text when not eligible
@@ -63,7 +63,7 @@ Fixed the "Get Verified" and "Trade" flow to allow users to self-register and up
 2. Browser encrypts bitmap → `abi.encode(uint256 bitmap)` for demo
 3. Calls `UserRegistry.setMyEncryptedProfile(ciphertext, expiry)`
 4. Onchain stores: `ciphertext` (bytes) + `expiry` (uint64)
-5. No raw attributes stored onchain ✅
+5. No raw attributes stored onchain
 
 ### Eligibility Check
 1. User clicks "Run check" on Trade page
@@ -77,17 +77,17 @@ Fixed the "Get Verified" and "Trade" flow to allow users to self-register and up
 5. UI shows pass/fail + reason
 
 ### Demo Flow
-1. **Wallet A**: Get Verified → EU + Accredited + 1K bucket → Save → Run check → ✅ Eligible
-2. **Wallet B**: Get Verified → US + Not Accredited + 100 bucket → Save → Run check → ❌ Not Eligible
+1. **Wallet A**: Get Verified → EU + Accredited + 1K bucket → Save → Run check → Eligible
+2. **Wallet B**: Get Verified → US + Not Accredited + 100 bucket → Save → Run check → Not Eligible
 3. Hook blocks Wallet B swaps, allows Wallet A swaps
-4. Only pass/fail revealed, no attributes exposed ✅
+4. Only pass/fail revealed, no attributes exposed
 
 ## UI Copy
 
 ### Verify Page
 - Header: "Create a private eligibility profile. We store ciphertext onchain; trades reveal only pass/fail."
 - Tip box: 3-step process
-- Success: "✅ Saved encrypted profile. Only ciphertext is stored. No raw attributes are written onchain."
+- Success: "Saved encrypted profile. Only ciphertext is stored. No raw attributes are written onchain."
 
 ### Trade Page
 - Eligible: "Hook would allow swaps for this pool."
