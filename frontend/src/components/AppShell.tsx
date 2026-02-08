@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { usePathname } from "next/navigation";
+import { isDemoMode } from "@/lib/demoMode";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -64,6 +65,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </nav>
           </div>
           <div className="flex items-center gap-3">
+            {isDemoMode() && (
+              <span className="text-xs font-medium px-2 py-1 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
+                Demo (Simulated)
+              </span>
+            )}
             <ConnectButton />
           </div>
         </div>

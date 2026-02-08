@@ -1,4 +1,50 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useEnsResolver, useReadContract } from "wagmi";
+import { normalize, namehash } from "viem/ens";
+import { decodeContentHash, buildGatewayUrls } from "@/lib/ens/contenthash";
+import { ExternalLink } from "lucide-react";
+
+const DOCS_ENS_NAME = "cloakswap.eth"; // Replace with your actual ENS name
+// ENS Public Resolver ABI - contenthash(bytes32 node) function
+const ENS_RESOLVER_ABI = [
+  {
+    name: "contenthash",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "node", type: "bytes32" }],
+    outputs: [{ name: "", type: "bytes" }],
+  },
+] as const;
+
 export default function DocsPage() {
+  const [contenthash, setContenthash] = useState<`0x${string}` | null>(null);
+
+  const { data: resolverAddress } = useEnsResolver({
+    name: normalize(DOCS_ENS_NAME),
+  });
+
+  const node = namehash(DOCS_ENS_NAME);
+
+  // Read contenthash from resolver
+  const { data: contenthashData } = useReadContract({
+    address: resolverAddress || undefined,
+    abi: ENS_RESOLVER_ABI,
+    functionName: "contenthash",
+    args: resolverAddress ? [node] : undefined,
+    query: { enabled: Boolean(resolverAddress) },
+  });
+
+  useEffect(() => {
+    if (contenthashData) {
+      setContenthash(contenthashData as `0x${string}`);
+    }
+  }, [contenthashData]);
+
+  const decodedContentHash = contenthash ? decodeContentHash(contenthash) : null;
+  const gatewayUrls = decodedContentHash ? buildGatewayUrls(decodedContentHash, DOCS_ENS_NAME) : [];
+
   return (
     <div className="space-y-6">
       <div>
@@ -153,6 +199,63 @@ export default function DocsPage() {
               ENS name resolution for users and issuers. Creative use: trading preferences stored as
               ENS text records for portable UX across dApps.
             </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ENS ContentHash Section */}
+      <div className="rounded-2xl border bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-semibold mb-4">ENS Decentralized Web</h2>
+        <div className="space-y-4">
+          <div>
+            <h3 className="font-semibold text-slate-900 mb-2">ContentHash</h3>
+            {contenthash ? (
+              <div className="space-y-3">
+                <div className="p-3 bg-slate-50 rounded-xl">
+                  <div className="text-sm text-slate-600 mb-1">ENS Name:</div>
+                  <div className="font-mono text-sm">{DOCS_ENS_NAME}</div>
+                </div>
+                {decodedContentHash ? (
+                  <>
+                    <div className="p-3 bg-slate-50 rounded-xl">
+                      <div className="text-sm text-slate-600 mb-1">Protocol:</div>
+                      <div className="font-medium">{decodedContentHash.protocol || "Unknown"}</div>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-xl">
+                      <div className="text-sm text-slate-600 mb-1">Hash:</div>
+                      <div className="font-mono text-xs break-all">{decodedContentHash.hash}</div>
+                    </div>
+                    {gatewayUrls.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium text-slate-700">Open via Gateway:</div>
+                        <div className="flex flex-wrap gap-2">
+                          {gatewayUrls.map((url, index) => (
+                            <a
+                              key={index}
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-link hover:bg-slate-50 transition"
+                            >
+                              {url.replace("https://", "")}
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-sm text-slate-600">
+                    ContentHash found but could not decode. Raw: <span className="font-mono text-xs">{contenthash}</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-sm text-slate-600">
+                No contenthash set for {DOCS_ENS_NAME}. Set one to enable decentralized web hosting.
+              </div>
+            )}
           </div>
         </div>
       </div>

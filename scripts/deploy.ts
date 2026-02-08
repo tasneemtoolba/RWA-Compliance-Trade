@@ -57,11 +57,31 @@ async function main() {
   fs.writeFileSync(deploymentPath, JSON.stringify(deploymentInfo, null, 2));
   console.log("\nDeployment info saved to:", deploymentPath);
 
+  // Configure demo pool rule mask
+  console.log("\nConfiguring demo pool rule mask...");
+  const DEMO_POOL_ID = ethers.keccak256(ethers.toUtf8Bytes("CLOAKSWAP_DEMO_POOL_V1"));
+  // Example rule: accredited (bit 0) + EU (bit 1) + bucket 1K (bit 11)
+  // In binary: 0b10000000011 = 0x403 = 1027
+  const RULE_MASK = BigInt("0x403"); // accredited | EU | bucket1k
+  
+  try {
+    const tx = await complianceHook.setPoolRuleMask(DEMO_POOL_ID, RULE_MASK);
+    await tx.wait();
+    console.log("Pool rule mask configured:", RULE_MASK.toString());
+    console.log("Demo pool ID:", DEMO_POOL_ID);
+  } catch (error) {
+    console.error("Failed to set pool rule mask:", error);
+    console.log("⚠️  You'll need to set it manually: hook.setPoolRuleMask(poolId, ruleMask)");
+  }
+
+  deploymentInfo.poolId = DEMO_POOL_ID;
+  deploymentInfo.ruleMask = RULE_MASK.toString();
+
   console.log("\n✅ Deployment complete!");
   console.log("\nNext steps:");
   console.log("1. Update contract addresses in frontend/src/lib/contracts.ts");
-  console.log("2. Run seed-demo.ts to set up demo data");
-  console.log("3. Configure pool rule mask using hook.setPoolRuleMask()");
+  console.log("2. Update poolId in frontend/src/lib/contracts.ts to:", DEMO_POOL_ID);
+  console.log("3. Run seed-demo.ts to set up demo user profiles (optional)");
 }
 
 main()

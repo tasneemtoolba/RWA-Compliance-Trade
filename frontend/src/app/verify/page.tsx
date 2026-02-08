@@ -1,167 +1,322 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useAccount, useChainId, useReadContract, useWriteContract } from "wagmi";
-import { CONTRACTS, reasonText } from "@/lib/contracts";
-import hookAbi from "@/lib/abi/ComplianceHook.json";
+import { useState, useEffect } from "react";
+import { useAccount } from "wagmi";
+import { isDemoMode } from "@/lib/demoMode";
+import { encodeEligibilityToBitmap, encryptBitmap } from "@/lib/mock/fhe";
+import { buildBitmap, type Region, type Bucket } from "@/lib/bitmap";
+import { bitmapToBytes32 } from "@/lib/encrypt";
+import * as registryService from "@/lib/services/registry";
+import * as hookService from "@/lib/services/hook";
+import * as poolService from "@/lib/services/pool";
+import { CONTRACTS } from "@/lib/contracts";
 import { defaultRuleMask } from "@/lib/bitmap";
+import Link from "next/link";
+import { CheckCircle2, XCircle, AlertCircle, Loader2, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { DemoBanner } from "@/components/DemoBanner";
 
 export default function VerifyPage() {
   const { address, isConnected } = useAccount();
-  const chainId = useChainId();
-  const { writeContractAsync } = useWriteContract();
+  const isDemo = isDemoMode();
 
-  const cfg = CONTRACTS.sepolia;
-  const isSepolia = chainId === 11155111;
+  // Form state
+  const [region, setRegion] = useState<Region>("EU");
+  const [accredited, setAccredited] = useState(true);
+  const [bucket, setBucket] = useState<Bucket>("1000");
+  const [expiryDays, setExpiryDays] = useState(30);
+  
+  // Status state
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<string>("");
+  const [txHash, setTxHash] = useState<string | null>(null);
+  const [savedProfile, setSavedProfile] = useState<{ ciphertext: string; expiry: number } | null>(null);
+  const [hookCheckResult, setHookCheckResult] = useState<{ allowed: boolean; reason: string } | null>(null);
 
-  const [eligible, setEligible] = useState<boolean | null>(null);
-  const [reason, setReason] = useState<number | null>(null);
-  const [status, setStatus] = useState<string>("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
-
-  // Call hook.check(user,poolId)
-  const { data, refetch } = useReadContract({
-    address: cfg.complianceHook as `0x${string}`,
-    abi: hookAbi,
-    functionName: "check",
-    args: [address ?? "0x0000000000000000000000000000000000000000", cfg.poolId],
-    query: { enabled: Boolean(address) && isSepolia },
-  });
-
+  // Load existing profile
   useEffect(() => {
-    if (!data) return;
-    const arr = data as unknown as [boolean, number];
-    setEligible(arr[0]);
-    setReason(arr[1]);
-  }, [data]);
+    if (address && isDemo) {
+      const profile = registryService.getProfile(address);
+      if (profile.exists) {
+        setSavedProfile({
+          ciphertext: profile.encryptedProfileBitMap.slice(0, 20) + "...",
+          expiry: profile.expiry,
+        });
+      }
+    }
+  }, [address, isDemo]);
 
-  async function configurePoolRule() {
-    if (!isConnected || !address) return;
-    if (!isSepolia) {
-      setStatus("Switch network to Sepolia.");
+  // Initialize pool rule if needed
+  useEffect(() => {
+    if (isDemo && address) {
+      const poolId = CONTRACTS.sepolia.poolId;
+      const ruleMask = poolService.getPoolRule(poolId);
+      if (ruleMask === "0" || !ruleMask) {
+        // Set default rule mask
+        const mask = defaultRuleMask().toString(16).padStart(64, "0");
+        poolService.setPoolRule(poolId, `0x${mask}`);
+      }
+    }
+  }, [isDemo, address]);
+
+  const handleSave = async () => {
+    if (!isConnected || !address) {
+      setSaveStatus("Please connect wallet");
       return;
     }
-    setStatus("Setting pool rule mask...");
-    const mask = defaultRuleMask();
+
+    setIsSaving(true);
+    setSaveStatus("Encrypting locally in your browser...");
+
     try {
-      await writeContractAsync({
-        address: cfg.complianceHook as `0x${string}`,
-        abi: hookAbi,
-        functionName: "setPoolRuleMask",
-        args: [cfg.poolId, mask],
+      // Build bitmap from form inputs
+      let bitmap: bigint;
+      let encryptedProfileBitMap: string;
+      
+      if (isDemo) {
+        // Use mock FHE encoding
+        bitmap = encodeEligibilityToBitmap({ region, accredited, bucket });
+        encryptedProfileBitMap = encryptBitmap(bitmap);
+      } else {
+        // Use real bitmap builder
+        bitmap = buildBitmap({ accredited, region, bucket });
+        encryptedProfileBitMap = bitmapToBytes32(bitmap);
+      }
+      
+      // Calculate expiry
+      const expiry = Math.floor(Date.now() / 1000) + expiryDays * 86400;
+
+      setSaveStatus("Saving ciphertext + expiry onchain...");
+
+      // Check if user is already registered
+      const userId = registryService.getUserIdByWallet(address);
+      const isRegistered = userId !== "0x0" && userId.length > 2;
+      
+      // Call selfRegister or selfUpdateProfile
+      const hash = isRegistered
+        ? await registryService.selfUpdateProfile(address, encryptedProfileBitMap, expiry)
+        : await registryService.selfRegister(address, encryptedProfileBitMap, expiry);
+
+      setTxHash(hash);
+      setSaveStatus("✅ Profile saved!");
+      
+      // Update saved profile state
+      setSavedProfile({
+        ciphertext: encryptedProfileBitMap.slice(0, 20) + "...",
+        expiry,
       });
-      setStatus("✅ Pool configured. Re-check eligibility.");
-      await refetch();
+
+      // Run hook check
+      setTimeout(async () => {
+        try {
+          const poolId = CONTRACTS.sepolia.poolId;
+          const check = await hookService.checkUserCompliance(address, poolId);
+          setHookCheckResult({
+            allowed: check.allowed,
+            reason: check.reason,
+          });
+        } catch (e) {
+          console.error("Hook check error:", e);
+        }
+      }, 500);
     } catch (error: any) {
-      setStatus(`Error: ${error.message}`);
+      console.error("Error saving profile:", error);
+      setSaveStatus(`Error: ${error.message || "Failed to save profile"}`);
+    } finally {
+      setIsSaving(false);
     }
+  };
+
+  if (!isConnected) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-semibold">Get Verified</h1>
+          <p className="mt-2 text-slate-600">
+            Encrypt eligibility locally → store ciphertext (simulated) → hook checks pass/fail only.
+          </p>
+        </div>
+        <DemoBanner />
+        <div className="rounded-2xl border bg-white p-8 shadow-sm text-center">
+          <p className="text-slate-600 mb-4">Connect wallet to get verified</p>
+          <Button className="btn-primary">Connect Wallet</Button>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-      {/* Title Section */}
+      {/* Header */}
       <div>
         <h1 className="text-3xl font-semibold">Get Verified</h1>
         <p className="mt-2 text-slate-600">
-          MVP shows eligibility check (trade UI comes next).
+          Encrypt eligibility locally → store ciphertext (simulated) → hook checks pass/fail only.
         </p>
       </div>
 
-      {/* Hook Check Card */}
-      <div className="rounded-2xl border bg-white p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Hook Check</h2>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              readOnly
-              value={cfg.poolId.slice(0, 10) + "..." + cfg.poolId.slice(-8)}
-              className="px-3 py-1.5 text-sm rounded-xl border bg-slate-50 text-slate-600 w-48"
-            />
-            <button className="text-slate-400 hover:text-slate-600">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-            </button>
-          </div>
-        </div>
+      <DemoBanner />
 
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            {eligible === true ? (
-              <>
-                <span className="text-green-600 text-xl">✅</span>
-                <span className="text-green-600 text-xl">✅</span>
-                <span className="font-medium">Eligible</span>
-              </>
-            ) : eligible === false ? (
-              <>
-                <span className="text-red-600 text-xl">❌</span>
-                <span className="font-medium text-red-600">Not eligible</span>
-              </>
-            ) : (
-              <span className="text-slate-600">Status: Not checked</span>
+      {/* Profile Form */}
+      <div className="rounded-2xl border bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-semibold mb-4">Eligibility Profile</h2>
+        
+        {savedProfile ? (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <span className="font-medium text-green-900">Profile Saved</span>
+              </div>
+              <div className="text-sm text-green-800 space-y-1">
+                <div>✅ Profile saved. Now go to Trade → Run check.</div>
+                <div className="mt-2 text-xs">Only ciphertext is stored. No raw attributes are written onchain.</div>
+                {txHash && (
+                  <div className="mt-2">
+                    <div className="text-xs font-mono text-green-700">Tx: {txHash.slice(0, 20)}...</div>
+                  </div>
+                )}
+                <div className="mt-2 text-xs">
+                  Ciphertext: <span className="font-mono">{savedProfile.ciphertext}</span>
+                </div>
+                <div className="text-xs">
+                  Expires: {new Date(savedProfile.expiry * 1000).toLocaleString()}
+                </div>
+              </div>
+            </div>
+            
+            {hookCheckResult && (
+              <div className={`rounded-xl border p-4 ${
+                hookCheckResult.allowed 
+                  ? "border-green-200 bg-green-50" 
+                  : "border-red-200 bg-red-50"
+              }`}>
+                <div className="flex items-center gap-2">
+                  {hookCheckResult.allowed ? (
+                    <>
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                      <span className="font-medium text-green-900">Hook would allow swaps</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="w-5 h-5 text-red-600" />
+                      <span className="font-medium text-red-900">Hook would block swaps: {hookCheckResult.reason}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            <div className="flex gap-3">
+              <Button
+                onClick={() => {
+                  setSavedProfile(null);
+                  setHookCheckResult(null);
+                }}
+                variant="secondary"
+                className="flex-1"
+              >
+                Update Profile
+              </Button>
+              <Link href="/trade" className="flex-1">
+                <Button className="w-full btn-primary">
+                  Run Eligibility Check →
+                </Button>
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="region">Region</Label>
+              <Select value={region} onValueChange={(value) => setRegion(value as Region)}>
+                <SelectTrigger id="region">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="EU">EU</SelectItem>
+                  <SelectItem value="US">US</SelectItem>
+                  <SelectItem value="APAC">APAC</SelectItem>
+                  <SelectItem value="LATAM">LATAM</SelectItem>
+                  <SelectItem value="OTHER">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="accredited">Accredited Investor</Label>
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  type="checkbox"
+                  id="accredited"
+                  checked={accredited}
+                  onChange={(e) => setAccredited(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 text-primary-brand focus:ring-primary-brand"
+                />
+                <label htmlFor="accredited" className="text-sm text-slate-700">
+                  I am an accredited investor
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="bucket">Max Trade Bucket</Label>
+              <Select value={bucket} onValueChange={(value) => setBucket(value as Bucket)}>
+                <SelectTrigger id="bucket">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="100">100 USDC</SelectItem>
+                  <SelectItem value="1000">1,000 USDC</SelectItem>
+                  <SelectItem value="10000">10,000 USDC</SelectItem>
+                  <SelectItem value="100000">100,000 USDC</SelectItem>
+                  <SelectItem value="1000000">1,000,000 USDC</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="expiry">Expiry (days)</Label>
+              <Select
+                value={expiryDays.toString()}
+                onValueChange={(value) => setExpiryDays(Number(value))}
+              >
+                <SelectTrigger id="expiry">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7">7 days</SelectItem>
+                  <SelectItem value="30">30 days</SelectItem>
+                  <SelectItem value="60">60 days</SelectItem>
+                  <SelectItem value="90">90 days</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="w-full btn-primary"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {saveStatus}
+                </>
+              ) : (
+                "Encrypt & Save"
+              )}
+            </Button>
+
+            {saveStatus && !isSaving && saveStatus !== "✅ Profile saved!" && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                {saveStatus}
+              </div>
             )}
           </div>
-
-          {eligible !== null && (
-            <div>
-              <div className="text-sm text-slate-600">Reason</div>
-              <div className="mt-1 flex items-center gap-2">
-                <input
-                  type="radio"
-                  checked={true}
-                  readOnly
-                  className="text-primary-brand"
-                />
-                <span className="text-sm font-medium">{reason !== null ? reasonText[reason] : "OK"}</span>
-              </div>
-            </div>
-          )}
-
-          <button
-            onClick={() => refetch()}
-            disabled={!isConnected || !isSepolia}
-            className="w-full rounded-xl btn-primary px-4 py-3 font-medium transition"
-          >
-            Run check
-          </button>
-
-          <button
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="w-full flex items-center justify-between text-sm text-slate-600 hover:text-slate-900"
-          >
-            <div className="flex items-center gap-2">
-              <span>📍</span>
-              <span>Advanced</span>
-            </div>
-            <span>{showAdvanced ? "▼" : "▶"}</span>
-          </button>
-
-          {showAdvanced && (
-            <div className="space-y-2 text-sm text-slate-600 p-3 bg-slate-50 rounded">
-              <div className="flex items-center justify-between">
-                <span>Default pool rule mask:</span>
-                <select className="rounded border px-2 py-1 text-xs">
-                  <option>2009</option>
-                </select>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Tip Card */}
-      <div className="rounded-2xl border bg-white p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-xl">💡</span>
-          <h3 className="text-lg font-semibold">Tip</h3>
-        </div>
-        <ol className="text-sm text-slate-700 space-y-2 list-decimal list-inside">
-          <li>User enters an eligible profile.</li>
-          <li>Create a second wallet with a non-eligible profile.</li>
-          <li>On Trade page, run the hook check on both.</li>
-        </ol>
+        )}
       </div>
     </div>
   );

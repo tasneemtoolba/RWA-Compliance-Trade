@@ -1,4 +1,13 @@
 [
+  {"type":"function","name":"selfRegister","stateMutability":"nonpayable","inputs":[{"name":"encryptedProfileBitMap","type":"bytes32"},{"name":"expiry","type":"uint64"}],"outputs":[]},
+  {"type":"function","name":"selfUpdateProfile","stateMutability":"nonpayable","inputs":[{"name":"encryptedProfileBitMap","type":"bytes32"},{"name":"expiry","type":"uint64"}],"outputs":[]},
+  {"type":"function","name":"getUserProfileByWallet","stateMutability":"view","inputs":[{"name":"wallet","type":"address"}],"outputs":[{"name":"encryptedProfileBitMap","type":"bytes32"},{"name":"expiry","type":"uint64"}]},
+  {"type":"function","name":"getUserIdByWallet","stateMutability":"view","inputs":[{"name":"wallet","type":"address"}],"outputs":[{"name":"","type":"bytes32"}]},
+  {"type":"function","name":"getEncryptedProfile","stateMutability":"view","inputs":[{"name":"user","type":"address"}],"outputs":[{"name":"ciphertext","type":"bytes"},{"name":"expiry","type":"uint64"}]},
   {"type":"function","name":"setMyEncryptedProfile","stateMutability":"nonpayable","inputs":[{"name":"ciphertext","type":"bytes"},{"name":"expiry","type":"uint64"}],"outputs":[]},
-  {"type":"function","name":"getEncryptedProfile","stateMutability":"view","inputs":[{"name":"user","type":"address"}],"outputs":[{"name":"ciphertext","type":"bytes"},{"name":"expiry","type":"uint64"}]}
+  {"type":"function","name":"clearProfile","stateMutability":"nonpayable","inputs":[{"name":"user","type":"address"}],"outputs":[]},
+  {"type":"event","name":"SelfRegistered","inputs":[{"name":"wallet","type":"address","indexed":true},{"name":"userId","type":"bytes32","indexed":true},{"name":"expiry","type":"uint64","indexed":false}]},
+  {"type":"event","name":"SelfProfileUpdated","inputs":[{"name":"wallet","type":"address","indexed":true},{"name":"userId","type":"bytes32","indexed":true},{"name":"expiry","type":"uint64","indexed":false}]},
+  {"type":"event","name":"ProfileSet","inputs":[{"name":"user","type":"address","indexed":true},{"name":"expiry","type":"uint64","indexed":false}]},
+  {"type":"event","name":"ProfileCleared","inputs":[{"name":"user","type":"address","indexed":true}]}
 ]

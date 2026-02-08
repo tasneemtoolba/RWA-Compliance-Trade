@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAccount, useChainId, useReadContract } from "wagmi";
+import { useAccount, useChainId, useReadContract, useEnsAvatar } from "wagmi";
 import { useMode } from "@/hooks/useMode";
 import { CONTRACTS, reasonText } from "@/lib/contracts";
 import hookAbi from "@/lib/abi/ComplianceHook.json";
@@ -9,12 +9,19 @@ import Link from "next/link";
 import Image from "next/image";
 import { CheckCircle2, XCircle, Clock, AlertTriangle, ChevronDown, ChevronRight, Copy } from "lucide-react";
 
+const ISSUER_ENS_NAME = "pybast.eth";
+
 export default function ExplorePage() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { mode, setMode } = useMode();
   const [showWhyPrivate, setShowWhyPrivate] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Get issuer ENS avatar
+  const { data: issuerAvatar } = useEnsAvatar({
+    name: ISSUER_ENS_NAME,
+  });
 
   const cfg = CONTRACTS.sepolia;
   const isSepolia = chainId === 11155111;
@@ -116,13 +123,26 @@ export default function ExplorePage() {
             <div className="mt-3 flex items-center gap-2">
               <div className="text-sm text-slate-600">Issuer:</div>
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded bg-blue-100 flex items-center justify-center">
-                  <div className="w-2 h-2 bg-blue-600 rounded"></div>
-                </div>
-                <span className="font-medium text-slate-900">atlas-verifier.eth</span>
+                {issuerAvatar ? (
+                  <div className="w-5 h-5 rounded-full overflow-hidden border border-slate-200">
+                    <Image
+                      src={issuerAvatar}
+                      alt={ISSUER_ENS_NAME}
+                      width={20}
+                      height={20}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-primary-brand flex items-center justify-center">
+                    <span className="text-white text-xs font-semibold">
+                      {ISSUER_ENS_NAME[0].toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                <span className="font-medium text-slate-900">{ISSUER_ENS_NAME}</span>
                 <CheckCircle2 className="w-4 h-4 text-privacy-brand" />
               </div>
-              <div className="ml-2 text-xs text-slate-500">USSR</div>
             </div>
             <div className="mt-1 text-xs text-slate-500 flex items-center gap-1 ml-7">
               <span>10-GNASI</span>

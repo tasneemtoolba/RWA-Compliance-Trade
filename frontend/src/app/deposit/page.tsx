@@ -1,114 +1,84 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAccount, useChainId, useWriteContract } from "wagmi";
+import { useAccount, useChainId, useWalletClient } from "wagmi";
 import { useMode } from "@/hooks/useMode";
-import { getLifiRoutes, executeLifiRoute, type Route } from "@/lib/lifi";
-import { readEnsText, resolveENS, ENS_KEYS } from "@/lib/ens";
-import { SUPPORTED_CHAINS } from "@/lib/mode";
-import Link from "next/link";
-import { ExternalLink, Loader2, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { fetchRoutes, executeRoute, formatSteps } from "@/lib/lifi/client";
+import { DESTINATION_CONFIG, SOURCE_CHAINS } from "@/lib/lifi/constants";
+import { useRouteStore } from "@/lib/store/useRouteStore";
+import type { Route, RouteExecutionUpdate, RouteExecutionResult } from "@/lib/lifi/types";
+import { parseUnits, formatUnits } from "viem";
+import { DepositForm } from "@/components/deposit/DepositForm";
+import { RouteOptions } from "@/components/deposit/RouteOptions";
+import { ExecutionPanel } from "@/components/deposit/ExecutionPanel";
+import { ReceiptList } from "@/components/deposit/ReceiptList";
 import { DepositStepList, type DepositStep } from "@/components/DepositStepList";
-
-const CHAINS = [
-    { id: 8453, name: "Base", symbol: "BASE" },
-    { id: 42161, name: "Arbitrum", symbol: "ARB" },
-    { id: 1, name: "Ethereum", symbol: "ETH" },
-];
-
-const TOKENS = [
-    { id: "0x0000000000000000000000000000000000000000", name: "ETH", symbol: "ETH" },
-    { id: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", name: "USDC", symbol: "USDC" },
-    { id: "0xdAC17F958D2ee523a2206206994597C13D831ec7", name: "USDT", symbol: "USDT" },
-];
+import { AlertCircle, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function DepositPage() {
     const { address, isConnected } = useAccount();
     const chainId = useChainId();
+    const { data: walletClient } = useWalletClient();
     const { mode } = useMode();
-    const { writeContractAsync } = useWriteContract();
+    const { setLastRoute } = useRouteStore();
 
     const [fromChain, setFromChain] = useState(8453); // Base
     const [fromToken, setFromToken] = useState("0x0000000000000000000000000000000000000000"); // ETH
-    const [toChain, setToChain] = useState(1); // Ethereum
-    const [toToken, setToToken] = useState("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"); // USDC
     const [amount, setAmount] = useState("");
     const [routes, setRoutes] = useState<Route[]>([]);
     const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
     const [isLoadingRoutes, setIsLoadingRoutes] = useState(false);
     const [isExecuting, setIsExecuting] = useState(false);
-    const [executionResult, setExecutionResult] = useState<{
-        stepReceipts: string[];
-        finalTxHash: string;
-        success: boolean;
-    } | null>(null);
+    const [currentStep, setCurrentStep] = useState<number | undefined>();
+    const [executionResult, setExecutionResult] = useState<RouteExecutionResult | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [depositSteps, setDepositSteps] = useState<DepositStep[]>([]);
 
-    // Load ENS preferences to prefill form
-    useEffect(() => {
-        if (address && isConnected && mode === "production") {
-            resolveENS(address, mode).then(async (ensName) => {
-                if (ensName) {
-                    const [preferredChain, preferredToken] = await Promise.all([
-                        readEnsText(ensName, ENS_KEYS.PREFERRED_CHAIN, mode),
-                        readEnsText(ensName, ENS_KEYS.PREFERRED_TOKEN, mode),
-                    ]);
-
-                    // Map chain names to IDs
-                    if (preferredChain) {
-                        const chainMap: Record<string, number> = {
-                            base: 8453,
-                            ethereum: 1,
-                            arbitrum: 42161,
-                        };
-                        if (chainMap[preferredChain.toLowerCase()]) {
-                            setToChain(chainMap[preferredChain.toLowerCase()]);
-                        }
-                    }
-
-                    // Map token names to addresses
-                    if (preferredToken) {
-                        const tokenMap: Record<string, string> = {
-                            USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-                            USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-                        };
-                        if (tokenMap[preferredToken.toUpperCase()]) {
-                            setToToken(tokenMap[preferredToken.toUpperCase()]);
-                        }
-                    }
-                }
-            });
-        }
-    }, [address, isConnected, mode]);
+    // Destination is fixed
+    const toChain = DESTINATION_CONFIG.chainId;
+    const toToken = DESTINATION_CONFIG.token;
 
     const handleGetRoutes = async () => {
-        if (!amount) {
-            setError("Please enter an amount");
+        if (!amount || !address) {
+            setError("Please enter an amount and connect wallet");
             return;
         }
 
         setIsLoadingRoutes(true);
         setError(null);
+        setRoutes([]);
+        setSelectedRoute(null);
+
         try {
-            const routes = await getLifiRoutes(
-                fromChain,
-                toChain,
+            // Convert amount to wei (assuming 18 decimals for ETH, adjust for other tokens)
+            const decimals = fromToken === "0x0000000000000000000000000000000000000000" ? 18 : 6;
+            const fromAmount = parseUnits(amount, decimals).toString();
+
+            const fetchedRoutes = await fetchRoutes({
+                fromChainId: fromChain,
+                toChainId: toChain,
                 fromToken,
                 toToken,
-                amount
-            );
-            setRoutes(routes);
-            if (routes.length > 0) {
-                setSelectedRoute(routes[0]);
-                // Convert route to deposit steps
-                const steps: DepositStep[] = routes[0].steps.map((step, index) => ({
-                    stepNumber: index + 1,
-                    description: step.description,
-                    status: "pending",
-                    estimatedTime: step.estimatedTime,
-                }));
-                setDepositSteps(steps);
+                fromAmount,
+                fromAddress: address,
+                toAddress: address,
+            });
+
+            setRoutes(fetchedRoutes);
+            if (fetchedRoutes.length > 0) {
+                setSelectedRoute(fetchedRoutes[0]);
+                const formattedSteps = formatSteps(fetchedRoutes[0]);
+                setDepositSteps(
+                    formattedSteps.map((step) => ({
+                        stepNumber: step.stepNumber,
+                        description: step.description,
+                        status: "pending" as const,
+                        estimatedTime: step.estimatedTime,
+                    }))
+                );
+            } else {
+                setError("No routes found. Try adjusting your amount or tokens.");
             }
         } catch (err: any) {
             setError(err.message || "Failed to get routes");
@@ -118,27 +88,57 @@ export default function DepositPage() {
     };
 
     const handleExecuteRoute = async () => {
-        if (!selectedRoute || !address) return;
+        if (!selectedRoute || !address || !walletClient) {
+            setError("Please connect wallet and select a route");
+            return;
+        }
 
         setIsExecuting(true);
         setError(null);
-        try {
-            // In production, you'd pass the actual signer from wagmi
-            const result = await executeLifiRoute(selectedRoute, null);
-            setExecutionResult(result);
+        setCurrentStep(0);
 
-            // Update steps with execution results
-            const updatedSteps = depositSteps.map((step, index) => ({
-                ...step,
-                status: index < result.stepReceipts.length ? "done" : "pending",
-                txHash: result.stepReceipts[index],
-            }));
-            setDepositSteps(updatedSteps);
+        try {
+            const result = await executeRoute(selectedRoute, {
+                getSigner: async () => walletClient,
+                onUpdate: (update: RouteExecutionUpdate) => {
+                    // Update current step
+                    const stepIndex = selectedRoute.steps.findIndex((s) => s.id === update.step.id);
+                    if (stepIndex !== -1) {
+                        setCurrentStep(stepIndex + 1);
+                    }
+
+                    // Update deposit steps UI
+                    setDepositSteps((prev) => {
+                        const updated = [...prev];
+                        if (stepIndex >= 0 && stepIndex < updated.length) {
+                            updated[stepIndex] = {
+                                ...updated[stepIndex],
+                                status: update.status === "done" ? "done" : update.status === "failed" ? "failed" : "pending",
+                                txHash: update.process.txHash,
+                            };
+                        }
+                        return updated;
+                    });
+                },
+            });
+
+            setExecutionResult(result);
+            setLastRoute(result);
+
+            // After route execution, optionally execute a contract call (for Composer bounty)
+            // This could be USDC.approve() or DepositVault.credit()
+            // For now, we'll just show the result
         } catch (err: any) {
             setError(err.message || "Failed to execute route");
-            setExecutionResult({ stepReceipts: [], finalTxHash: "", success: false });
+            setExecutionResult({
+                route: selectedRoute,
+                stepReceipts: [],
+                finalTxHash: "",
+                success: false,
+            });
         } finally {
             setIsExecuting(false);
+            setCurrentStep(undefined);
         }
     };
 
@@ -153,9 +153,12 @@ export default function DepositPage() {
                     <div className="flex items-start gap-3">
                         <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
                         <div className="flex-1">
-                            <div className="font-medium text-yellow-800 mb-1">Switch to Production mode to deposit</div>
+                            <div className="font-medium text-yellow-800 mb-1">
+                                Switch to Production mode to deposit
+                            </div>
                             <div className="text-sm text-yellow-700">
-                                Demo is only active on Sepolia. Production integration must implement integration for funding vaults in production. Demo mode is disabled for cross-chain deposits.
+                                LI.FI does not support testnets. Use Production Mode (Mainnet) for live route execution.
+                                Demo mode shows the UI structure only.
                             </div>
                         </div>
                     </div>
@@ -171,96 +174,33 @@ export default function DepositPage() {
                 <p className="mt-2 text-slate-600">Cross-chain funding via LI.FI Composer</p>
             </div>
 
+            {/* Deposit Form */}
             <div className="rounded-2xl border bg-white p-6 shadow-sm">
                 <h2 className="text-xl font-semibold mb-4">Route Builder</h2>
+                <DepositForm
+                    fromChain={fromChain}
+                    fromToken={fromToken}
+                    amount={amount}
+                    onFromChainChange={setFromChain}
+                    onFromTokenChange={setFromToken}
+                    onAmountChange={setAmount}
+                    mode={mode}
+                />
 
-                <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="text-sm text-slate-600 block mb-2">From Chain</label>
-                        <select
-                            className="w-full rounded-xl border p-2"
-                            value={fromChain}
-                            onChange={(e) => setFromChain(Number(e.target.value))}
-                        >
-                            {CHAINS.map((chain) => (
-                                <option key={chain.id} value={chain.id}>
-                                    {chain.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="text-sm text-slate-600 block mb-2">From Token</label>
-                        <select
-                            className="w-full rounded-xl border p-2"
-                            value={fromToken}
-                            onChange={(e) => setFromToken(e.target.value)}
-                        >
-                            {TOKENS.map((token) => (
-                                <option key={token.id} value={token.id}>
-                                    {token.name} ({token.symbol})
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="text-sm text-slate-600 block mb-2">Amount</label>
-                        <input
-                            type="number"
-                            placeholder="0.01"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            className="w-full rounded-xl border p-2"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="text-sm text-slate-600 block mb-2">To Chain</label>
-                        <select
-                            className="w-full rounded-xl border p-2"
-                            value={toChain}
-                            onChange={(e) => setToChain(Number(e.target.value))}
-                        >
-                            {CHAINS.map((chain) => (
-                                <option key={chain.id} value={chain.id}>
-                                    {chain.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="text-sm text-slate-600 block mb-2">To Token</label>
-                        <select
-                            className="w-full rounded-xl border p-2"
-                            value={toToken}
-                            onChange={(e) => setToToken(e.target.value)}
-                        >
-                            {TOKENS.map((token) => (
-                                <option key={token.id} value={token.id}>
-                                    {token.name} ({token.symbol})
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-
-                <button
+                <Button
                     onClick={handleGetRoutes}
                     disabled={!amount || isLoadingRoutes || !isConnected}
-                    className="mt-6 w-full rounded-xl btn-primary px-4 py-3 font-medium transition"
+                    className="w-full mt-6 btn-primary"
                 >
                     {isLoadingRoutes ? (
                         <>
-                            <Loader2 className="w-4 h-4 inline mr-2 animate-spin" />
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                             Getting Routes...
                         </>
                     ) : (
                         "Get Routes"
                     )}
-                </button>
+                </Button>
 
                 {error && (
                     <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
@@ -269,100 +209,52 @@ export default function DepositPage() {
                 )}
             </div>
 
-            {selectedRoute && (
+            {/* Route Options */}
+            {routes.length > 0 && (
                 <div className="rounded-2xl border bg-white p-6 shadow-sm">
-                    <h2 className="text-xl font-semibold mb-4">Route Steps</h2>
-                    {depositSteps.length > 0 ? (
-                        <DepositStepList steps={depositSteps} mode={mode} />
-                    ) : (
-                        <div className="space-y-3">
-                            {selectedRoute.steps.map((step, index) => (
-                                <div key={index} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                                    <div className="w-8 h-8 rounded-full bg-primary-brand/10 text-primary-brand flex items-center justify-center font-medium">
-                                        {index + 1}
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="font-medium">{step.type.toUpperCase()}</div>
-                                        <div className="text-sm text-slate-600">{step.description}</div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    <div className="mt-4 text-sm text-slate-600">
-                        Estimated time: {selectedRoute.estimatedTime}
-                        {selectedRoute.estimatedGas && ` • Gas: ${selectedRoute.estimatedGas}`}
-                    </div>
-
-                    <div className="mt-4 flex gap-3">
-                        <button
-                            onClick={handleGetRoutes}
-                            disabled={isLoadingRoutes}
-                            className="flex-1 rounded-xl btn-primary px-4 py-3 font-medium transition"
-                        >
-                            Get Route
-                        </button>
-                        <button
-                            onClick={handleExecuteRoute}
-                            disabled={isExecuting || !isConnected || depositSteps.length === 0}
-                            className="flex-1 rounded-xl btn-secondary px-4 py-3 font-medium transition"
-                        >
-                            {isExecuting ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 inline mr-2 animate-spin" />
-                                    Executing...
-                                </>
-                            ) : (
-                                <>
-                                    Execute Route <span className="ml-1">→</span>
-                                </>
-                            )}
-                        </button>
-                    </div>
+                    <h2 className="text-xl font-semibold mb-4">Available Routes</h2>
+                    <RouteOptions
+                        routes={routes}
+                        selectedRoute={selectedRoute}
+                        onSelectRoute={(route) => {
+                            setSelectedRoute(route);
+                            const formattedSteps = formatSteps(route);
+                            setDepositSteps(
+                                formattedSteps.map((step) => ({
+                                    stepNumber: step.stepNumber,
+                                    description: step.description,
+                                    status: "pending" as const,
+                                    estimatedTime: step.estimatedTime,
+                                }))
+                            );
+                        }}
+                    />
                 </div>
             )}
 
-            {executionResult && (
+            {/* Route Steps */}
+            {selectedRoute && depositSteps.length > 0 && (
                 <div className="rounded-2xl border bg-white p-6 shadow-sm">
-                    <h2 className="text-xl font-semibold mb-4">What judges should see</h2>
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl">
-                            <Clock className="w-4 h-4 text-slate-600" />
-                            <div className="flex-1">
-                                <div className="text-sm text-slate-700">
-                                    Execution: Executed USDC balance? | =
-                                </div>
-                                <div className="text-xs text-slate-500 mt-1">
-                                    Execution: Executed intermediate steps. Still requires failing to trade. USDC balance increases to 140 USDC; balance.
-                                </div>
-                            </div>
-                            <span className="text-secondary-brand">▶</span>
-                        </div>
-                        {executionResult.stepReceipts.map((receipt, index) => (
-                            <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
-                                <div>
-                                    <div className="font-medium">Step {index + 1}</div>
-                                    <div className="text-sm text-slate-600 font-mono">{receipt.slice(0, 20)}...</div>
-                                </div>
-                                <a
-                                    href={`https://etherscan.io/tx/${receipt}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-link hover:opacity-80 flex items-center gap-1"
-                                >
-                                    View <ExternalLink className="w-4 h-4" />
-                                </a>
-                            </div>
-                        ))}
-                        {executionResult.success && (
-                            <div className="flex items-center gap-2 text-green-700 mt-4">
-                                <CheckCircle2 className="w-5 h-5" />
-                                <span className="font-medium">Route executed successfully!</span>
-                            </div>
-                        )}
-                    </div>
+                    <h2 className="text-xl font-semibold mb-4">Route Steps</h2>
+                    <DepositStepList steps={depositSteps} mode={mode} />
                 </div>
+            )}
+
+            {/* Execution Panel */}
+            {selectedRoute && (
+                <ExecutionPanel
+                    route={selectedRoute}
+                    isExecuting={isExecuting}
+                    currentStep={currentStep}
+                    totalSteps={selectedRoute.steps.length}
+                    error={error}
+                    onExecute={handleExecuteRoute}
+                />
+            )}
+
+            {/* Receipts */}
+            {executionResult && (
+                <ReceiptList result={executionResult} mode={mode} />
             )}
         </div>
     );
