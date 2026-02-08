@@ -1,0 +1,4 @@
+[
+  {"type":"function","name":"check","stateMutability":"view","inputs":[{"name":"user","type":"address"},{"name":"poolId","type":"bytes32"}],"outputs":[{"name":"eligible","type":"bool"},{"name":"reasonCode","type":"uint8"}]},
+  {"type":"function","name":"setPoolRuleMask","stateMutability":"nonpayable","inputs":[{"name":"poolId","type":"bytes32"},{"name":"ruleMask","type":"uint256"}],"outputs":[]}
+]

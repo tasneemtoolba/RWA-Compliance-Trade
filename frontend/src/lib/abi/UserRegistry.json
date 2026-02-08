@@ -1,0 +1,4 @@
+[
+  {"type":"function","name":"setMyEncryptedProfile","stateMutability":"nonpayable","inputs":[{"name":"ciphertext","type":"bytes"},{"name":"expiry","type":"uint64"}],"outputs":[]},
+  {"type":"function","name":"getEncryptedProfile","stateMutability":"view","inputs":[{"name":"user","type":"address"}],"outputs":[{"name":"ciphertext","type":"bytes"},{"name":"expiry","type":"uint64"}]}
+]

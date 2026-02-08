@@ -1,0 +1,262 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  :root {
+    /* CloakSwap Magenta Theme - Button Colors */
+    --btn: #FF2DAA;
+    --btnHover: #E6008A;
+    --btnActive: #CC007A;
+    --btnDisabled: #FFD1EA;
+    --btnText: #FFFFFF;
+    --btnDisabledText: #8A8F98;
+
+    /* Background + Surfaces */
+    --bg: #FFF6FB;
+    --surface: #FFFFFF;
+    --surfaceSoft: #FFF0F8;
+    --border: #F2D6E8;
+
+    /* Text */
+    --text: #1A1020;
+    --muted: #6B5565;
+    --label: #9A7C93;
+
+    /* Links / Highlights */
+    --link: #D60086;
+    --focus: rgba(255, 45, 170, 0.20);
+
+    /* Status Colors */
+    --success: #16A34A;
+    --warn: #F59E0B;
+    --error: #EF4444;
+    --info: #2563EB;
+
+    /* Legacy compatibility */
+    --background: var(--bg);
+    --foreground: var(--text);
+    --card: var(--surface);
+    --card-foreground: var(--text);
+    --card-accent: var(--surfaceSoft);
+    --popover: var(--surface);
+    --popover-foreground: var(--text);
+    --primary: var(--btn);
+    --primary-foreground: var(--btnText);
+    --secondary: var(--btn);
+    --secondary-foreground: var(--btnText);
+    --muted: var(--muted);
+    --muted-foreground: var(--label);
+    --accent: var(--border);
+    --accent-foreground: var(--text);
+    --destructive: var(--error);
+    --destructive-foreground: #FFFFFF;
+    --input: var(--border);
+    --ring: var(--focus);
+
+    --radius: 0;
+
+    --sidebar-background: var(--surface);
+    --sidebar-foreground: var(--muted);
+    --sidebar-primary: var(--btn);
+    --sidebar-primary-foreground: var(--btnText);
+    --sidebar-accent: var(--surfaceSoft);
+    --sidebar-accent-foreground: var(--text);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--focus);
+
+    --w3m-font-family: "Telegraf Regular", "Arial", "sans-serif";
+  }
+
+  .dark {
+    --background: 0 0% 18%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 25%;
+    --card-foreground: 0 0% 98%;
+    --card-accent: 0 0% 35%;
+
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 49 100% 52%;
+    --primary-foreground: 240 5.9% 10%;
+
+    --secondary: 0 0% 25%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 57%;
+    --input: 0 0% 57%;
+    --ring: 240 4.9% 83.9%;
+
+    --sidebar-background: 240 10% 3.9%;
+    --sidebar-foreground: 240 5% 64.9%;
+    --sidebar-primary: 217.2 91.2% 59.8%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer utilities {
+  * {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Primary Button Styles */
+  .btn-primary {
+    background: var(--btn);
+    color: var(--btnText);
+    border: none;
+  }
+  
+  .btn-primary:hover:not(:disabled) {
+    background: var(--btnHover);
+  }
+  
+  .btn-primary:active:not(:disabled) {
+    background: var(--btnActive);
+  }
+  
+  .btn-primary:disabled {
+    background: var(--btnDisabled);
+    color: var(--btnDisabledText);
+    cursor: not-allowed;
+  }
+
+  /* Secondary Button Styles (border-only) */
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--surfaceSoft);
+  }
+  
+  .btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Hero Gradient (optional, for hero sections only) */
+  .hero-glow {
+    background: radial-gradient(600px circle at 20% 10%, rgba(255, 45, 170, 0.18), transparent 60%);
+  }
+
+  /* Legacy gradient-cta - now uses primary button */
+  .gradient-cta {
+    background: var(--btn);
+    color: var(--btnText);
+  }
+  
+  .gradient-cta:hover:not(:disabled) {
+    background: var(--btnHover);
+  }
+
+  /* Brand color utilities */
+  .bg-primary-brand {
+    background-color: var(--btn);
+  }
+  
+  .text-primary-brand {
+    color: var(--link);
+  }
+  
+  .text-link {
+    color: var(--link);
+  }
+  
+  .border-brand {
+    border-color: var(--border);
+  }
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-card-accent: var(--card-accent);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-privacy: var(--privacy);
+  --color-privacy-foreground: var(--privacy-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-table: var(--table);
+  --color-table-foreground: var(--table-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar-background: var(--sidebar-background);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+body {
+  font-family: "Telegraf", Helvetica, sans-serif;
+}
+
+@font-face {
+  font-family: "Telegraf";
+  font-style: normal;
+  font-weight: 200;
+  src:
+    local("Telegraf UltraLight"),
+    url("/assets/fonts/telegraf/Telegraf UltraLight 200.woff") format("woff");
+}
+
+@font-face {
+  font-family: "Telegraf";
+  font-style: normal;
+  font-weight: 400;
+  src:
+    local("Telegraf Regular"),
+    url("/assets/fonts/telegraf/TelegrafRegular_272984568a25d8528fe2de8b20b29011.woff") format("woff");
+}
+
+@font-face {
+  font-family: "Telegraf";
+  font-style: normal;
+  font-weight: 800;
+  src:
+    local("Telegraf UltraBold"),
+    url("/assets/fonts/telegraf/Telegraf UltraBold 800.woff") format("woff");
+}
