@@ -142,7 +142,7 @@ export default function Home() {
 
           <button
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="mt-4 text-sm text-slate-600 hover:text-slate-900 flex items-center gap-1"
+            className="mt-4 text-sm text-primary-brand hover:text-primary-brand flex items-center gap-1"
           >
             Advanced {showAdvanced ? "▼" : "▶"}
           </button>
@@ -162,8 +162,7 @@ export default function Home() {
 
           <div className="mt-6 grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-green-700">
-                <span>✅</span>
+              <div className="flex items-center gap-2 text-sm font-medium text-primary-brand">
                 <span>Onchain</span>
               </div>
               <ul className="text-xs text-slate-600 space-y-1 ml-6">
@@ -172,8 +171,7 @@ export default function Home() {
               </ul>
             </div>
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-green-700">
-                <span>✅</span>
+              <div className="flex items-center gap-2 text-sm font-medium text-primary-brand">
                 <span>Not onchain</span>
               </div>
               <ul className="text-xs text-slate-600 space-y-1 ml-6">

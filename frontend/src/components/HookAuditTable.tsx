@@ -5,8 +5,7 @@ import { useAccount, useChainId } from "wagmi";
 import { useMode } from "@/hooks/useMode";
 import { readComplianceCheckEvents } from "@/lib/hook";
 import { CONTRACTS } from "@/lib/contracts";
-import { formatAddress } from "viem";
-import { formatAddress } from "viem";
+import { formatAddress } from "@/lib/helper";
 import { ExternalLink, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { reasonText } from "@/lib/contracts";
 

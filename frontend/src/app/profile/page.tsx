@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useAccount, useChainId, useReadContract, useWriteContract } from "wagmi";
 import { useMode } from "@/hooks/useMode";
 import { resolveENS, readEnsText, writeEnsText, ENS_KEYS } from "@/lib/ens";
-import { formatAddress } from "viem";
+import { formatAddress } from "@/lib/helper";
 import { CONTRACTS, reasonText } from "@/lib/contracts";
 import userRegistryAbi from "@/lib/abi/UserRegistry.json";
 import hookAbi from "@/lib/abi/ComplianceHook.json";

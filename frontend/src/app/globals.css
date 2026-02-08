@@ -16,7 +16,7 @@
     --btnActive: #CC007A;
     --btnDisabled: #FFD1EA;
     --btnText: #FFFFFF;
-    --btnDisabledText: #8A8F98;
+    --btnDisabledText: #FFFFFF;
 
     /* Background + Surfaces */
     --bg: #FFF6FB;
@@ -127,15 +127,15 @@
     color: var(--btnText);
     border: none;
   }
-  
+
   .btn-primary:hover:not(:disabled) {
     background: var(--btnHover);
   }
-  
+
   .btn-primary:active:not(:disabled) {
     background: var(--btnActive);
   }
-  
+
   .btn-primary:disabled {
     background: var(--btnDisabled);
     color: var(--btnDisabledText);
@@ -148,11 +148,11 @@
     color: var(--text);
     border: 1px solid var(--border);
   }
-  
+
   .btn-secondary:hover:not(:disabled) {
     background: var(--surfaceSoft);
   }
-  
+
   .btn-secondary:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -168,7 +168,7 @@
     background: var(--btn);
     color: var(--btnText);
   }
-  
+
   .gradient-cta:hover:not(:disabled) {
     background: var(--btnHover);
   }
@@ -177,17 +177,49 @@
   .bg-primary-brand {
     background-color: var(--btn);
   }
-  
+
   .text-primary-brand {
     color: var(--link);
   }
-  
+
   .text-link {
     color: var(--link);
   }
-  
+
   .border-brand {
     border-color: var(--border);
+  }
+}
+
+/* RainbowKit ConnectButton Customization */
+@layer base {
+
+  /* Connect Wallet button - use primary button color */
+  button[data-testid="rk-connect-button"],
+  button[class*="rk-connect-button"],
+  a[class*="rk-connect-button"] {
+    background: var(--btn) !important;
+    color: var(--btnText) !important;
+    border: none !important;
+  }
+
+  button[data-testid="rk-connect-button"]:hover:not(:disabled),
+  button[class*="rk-connect-button"]:hover:not(:disabled),
+  a[class*="rk-connect-button"]:hover:not(:disabled) {
+    background: var(--btnHover) !important;
+  }
+
+  button[data-testid="rk-connect-button"]:active:not(:disabled),
+  button[class*="rk-connect-button"]:active:not(:disabled),
+  a[class*="rk-connect-button"]:active:not(:disabled) {
+    background: var(--btnActive) !important;
+  }
+
+  button[data-testid="rk-connect-button"]:disabled,
+  button[class*="rk-connect-button"]:disabled,
+  a[class*="rk-connect-button"]:disabled {
+    background: var(--btnDisabled) !important;
+    color: var(--btnDisabledText) !important;
   }
 }
 

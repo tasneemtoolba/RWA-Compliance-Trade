@@ -58,11 +58,9 @@ const Header = () => {
               className="w-10 h-10 bg-primary flex items-center justify-center"
             >
               <Image
-                src="/assets/zama-logo.png"
-                alt="Zama"
-                width={24}
-                height={24}
-                className="w-6 h-6"
+                src="/logo.png"
+                alt="CloakSwap RWA"
+                className="w-auto h-8"
               />
             </motion.div>
           </Link>
