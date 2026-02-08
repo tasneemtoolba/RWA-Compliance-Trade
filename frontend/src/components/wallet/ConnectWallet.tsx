@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Wallet } from "lucide-react";
 import { useWallet } from "@/hooks/wallet/useWallet";
 import { useAppKitAccount } from "@reown/appkit/react";
-import blockies from "ethereum-blockies";
 import Image from "next/image";
 
 const ConnectWallet = () => {
@@ -28,9 +27,6 @@ const ConnectWallet = () => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  const generateBlockie = (address: string) => {
-    return blockies.create({ seed: address }).toDataURL();
-  };
 
   return (
     <div className="flex items-center gap-2">
@@ -73,9 +69,9 @@ const ConnectWallet = () => {
               onClick={() => openConnectModal()}
             >
               <Image
-                src={address ? generateBlockie(address) : ""}
-                alt="Address Blockie"
-                className="w-5 h-5"
+                src="/profile.png"
+                alt="Profile"
+                className="w-5 h-5 rounded-full"
                 width={20}
                 height={20}
               />

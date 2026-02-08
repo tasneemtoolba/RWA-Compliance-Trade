@@ -179,7 +179,7 @@
   }
 
   .text-primary-brand {
-    color: var(--link);
+    color: var(--btn);
   }
 
   .text-link {

@@ -6,6 +6,7 @@ import { CONTRACTS, reasonText } from "@/lib/contracts";
 import hookAbi from "@/lib/abi/ComplianceHook.json";
 import { defaultRuleMask } from "@/lib/bitmap";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function TradePage() {
   const { address, isConnected } = useAccount();
@@ -116,10 +117,31 @@ export default function TradePage() {
 
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                <span className="text-blue-600 font-bold">+</span>
+              <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-white border border-slate-200">
+                <Image
+                  src="/usdc-icon.png"
+                  alt="USDC"
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-contain"
+                />
               </div>
               <span className="font-medium">100.00 USDC</span>
+            </div>
+            <div className="flex items-center justify-center text-slate-400">
+              <span className="text-xl">↓</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-white border border-slate-200">
+                <Image
+                  src="/assets/ggold.png"
+                  alt="gGOLD"
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <span className="font-medium">gGOLD</span>
             </div>
 
             <div className="text-sm text-slate-600">

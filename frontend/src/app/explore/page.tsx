@@ -6,6 +6,7 @@ import { useMode } from "@/hooks/useMode";
 import { CONTRACTS, reasonText } from "@/lib/contracts";
 import hookAbi from "@/lib/abi/ComplianceHook.json";
 import Link from "next/link";
+import Image from "next/image";
 import { CheckCircle2, XCircle, Clock, AlertTriangle, ChevronDown, ChevronRight, Copy } from "lucide-react";
 
 export default function ExplorePage() {
@@ -74,13 +75,41 @@ export default function ExplorePage() {
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded bg-blue-100 flex items-center justify-center">
-                <div className="w-4 h-4 bg-blue-600 rounded"></div>
+              <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-white border border-slate-200">
+                <Image
+                  src="/assets/ggold.png"
+                  alt="gGOLD"
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-contain"
+                />
               </div>
               <h2 className="text-2xl font-semibold">gGOLD</h2>
             </div>
             <div className="mt-2 flex items-center gap-4 text-sm text-slate-600">
-              <span>Pair: USDC → gGOLD</span>
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center bg-white border border-slate-200">
+                  <Image
+                    src="/usdc-icon.png"
+                    alt="USDC"
+                    width={20}
+                    height={20}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <span>USDC</span>
+                <span>→</span>
+                <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center bg-white border border-slate-200">
+                  <Image
+                    src="/assets/ggold.png"
+                    alt="gGOLD"
+                    width={20}
+                    height={20}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <span>gGOLD</span>
+              </div>
               <span>•</span>
               <span>Network: {mode === "demo" ? "Demo (Sepolia)" : "Production (Mainnet)"}</span>
             </div>
@@ -142,7 +171,7 @@ export default function ExplorePage() {
           onClick={() => setShowWhyPrivate(!showWhyPrivate)}
           className="mt-6 w-full flex items-center justify-between text-left text-sm text-slate-700 hover:text-slate-900"
         >
-          <span className="font-medium">Why private?</span>
+          <span className="font-medium text-primary-brand">Why private?</span>
           {showWhyPrivate ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </button>
         {showWhyPrivate && (
@@ -169,7 +198,7 @@ export default function ExplorePage() {
         {/* Advanced */}
         <button
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="mt-4 w-full flex items-center justify-between text-left text-xs text-slate-600 hover:text-slate-900"
+          className="mt-4 w-full flex items-center justify-between text-left text-xs text-primary-brand hover:text-primary-brand"
         >
           <span>Advanced</span>
           {showAdvanced ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}

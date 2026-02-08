@@ -24,13 +24,43 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--btn)' }}>RWA</span>
               </div>
             </Link>
-            <nav className="flex gap-4 text-sm" style={{ color: 'var(--muted)' }}>
-              <Link href="/explore" className={`hover:opacity-80 ${pathname === "/explore" ? "font-medium" : ""}`} style={{ color: pathname === "/explore" ? 'var(--text)' : 'var(--muted)' }}>Explore</Link>
-              <Link href="/trade" className={`hover:opacity-80 ${pathname === "/trade" ? "font-medium" : ""}`} style={{ color: pathname === "/trade" ? 'var(--text)' : 'var(--muted)' }}>Trade</Link>
-              <Link href="/verify" className={`hover:opacity-80 ${pathname === "/verify" ? "font-medium" : ""}`} style={{ color: pathname === "/verify" ? 'var(--text)' : 'var(--muted)' }}>Get Verified</Link>
-              <Link href="/profile" className={`hover:opacity-80 ${pathname === "/profile" ? "font-medium" : ""}`} style={{ color: pathname === "/profile" ? 'var(--text)' : 'var(--muted)' }}>Profile</Link>
-              <Link href="/deposit" className={`hover:opacity-80 ${pathname === "/deposit" ? "font-medium" : ""}`} style={{ color: pathname === "/deposit" ? 'var(--text)' : 'var(--muted)' }}>Deposit</Link>
-              <Link href="/docs" className={`hover:opacity-80 ${pathname === "/docs" ? "font-medium" : ""}`} style={{ color: pathname === "/docs" ? 'var(--text)' : 'var(--muted)' }}>Docs</Link>
+            <nav className="flex gap-4 text-sm">
+              <Link
+                href="/explore"
+                className={`hover:opacity-80 ${pathname === "/explore" ? "font-medium text-primary-brand" : "text-muted"}`}
+              >
+                Explore
+              </Link>
+              <Link
+                href="/trade"
+                className={`hover:opacity-80 ${pathname === "/trade" ? "font-medium text-primary-brand" : "text-muted"}`}
+              >
+                Trade
+              </Link>
+              <Link
+                href="/verify"
+                className={`hover:opacity-80 ${pathname === "/verify" ? "font-medium text-primary-brand" : "text-muted"}`}
+              >
+                Get Verified
+              </Link>
+              <Link
+                href="/profile"
+                className={`hover:opacity-80 ${pathname === "/profile" ? "font-medium text-primary-brand" : "text-muted"}`}
+              >
+                Profile
+              </Link>
+              <Link
+                href="/deposit"
+                className={`hover:opacity-80 ${pathname === "/deposit" ? "font-medium text-primary-brand" : "text-muted"}`}
+              >
+                Deposit
+              </Link>
+              <Link
+                href="/docs"
+                className={`hover:opacity-80 ${pathname === "/docs" ? "font-medium text-primary-brand" : "text-muted"}`}
+              >
+                Docs
+              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-3">
