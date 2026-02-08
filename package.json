@@ -1,7 +1,7 @@
 {
-  "name": "zama-compliance-hook",
+  "name": "cloakswap-rwa",
   "version": "1.0.0",
-  "description": "![Zama Compliance Hook](fhe-hook.webp)",
+  "description": "![CloakSwap RWA](cloakswap-rwa.webp)",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
