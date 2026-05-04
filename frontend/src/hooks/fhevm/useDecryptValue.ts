@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { getInstance } from "@/lib/fhevm/fhevmjs";
 import { reencryptEuint64 } from "@/lib/fhevm/reencrypt";
 import { Signer } from "ethers";
-import { FhevmInstance } from "fhevmjs";
 import { useFhevm } from "@/providers/FhevmProvider";
 
 interface useDecryptValueProps {
@@ -14,7 +12,7 @@ export const useDecryptValue = ({ signer }: useDecryptValueProps) => {
   const [lastUpdated, setLastUpdated] = useState<string>("Never");
   const [isDecrypting, setIsDecrypting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { isInitialized, instanceStatus } = useFhevm();
+  const { instance, status } = useFhevm();
 
   const decrypt = async (handle: bigint, contractAddress: `0x${string}`) => {
     setIsDecrypting(true);
@@ -22,22 +20,20 @@ export const useDecryptValue = ({ signer }: useDecryptValueProps) => {
     try {
       if (!signer)
         throw new Error("Signer not initialized - please connect your wallet");
-      if (!isInitialized) throw new Error("Fhevm not initialized");
-      if (instanceStatus !== "ready")
-        throw new Error("Create instance not initialized");
+      if (!instance) throw new Error("FHEVM instance not initialized");
+      if (status !== "ready")
+        throw new Error("FHEVM instance not ready");
       if (!handle || handle === 0n) {
         setDecryptedValue(0n);
         setLastUpdated(new Date().toLocaleString());
         return;
       }
 
-      const instance = getInstance();
-
       // Note this only works for values which are euint64
       // TODO: make hook more universal
       const clearBalance = await reencryptEuint64(
         signer,
-        instance as FhevmInstance,
+        instance,
         BigInt(handle),
         contractAddress,
       );

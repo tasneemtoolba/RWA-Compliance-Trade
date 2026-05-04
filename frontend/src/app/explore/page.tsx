@@ -9,7 +9,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { CheckCircle2, XCircle, Clock, AlertTriangle, ChevronDown, ChevronRight, Copy } from "lucide-react";
 
-const ISSUER_ENS_NAME = "pybast.eth";
+const ISSUER_ENS_NAME = "vitalik.eth";
 
 export default function ExplorePage() {
   const { address, isConnected } = useAccount();
@@ -182,7 +182,7 @@ export default function ExplorePage() {
 
         {mode === "demo" && (
           <div className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
-            Deposit is available in Production Mode only (LI.FI doesn't support testnets).
+            LI.FI supports Sepolia testnets. Switch to Production Mode for mainnet routes.
           </div>
         )}
 

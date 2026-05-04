@@ -1,12 +1,18 @@
-// Contract addresses - replace with your Sepolia deployments
+// Contract addresses - update with your deployed addresses
 
 export const CONTRACTS = {
   sepolia: {
     userRegistry: "0xYourUserRegistry",
     complianceHook: "0xYourComplianceHook",
     fheVerifier: "0xYourFHEVerifier",
-    // For MVP we use a constant poolId
+    // Pool ID - update with your actual pool ID or use demo pool ID from deploy script
     poolId: "0x" + "11".repeat(32), // bytes32
+  },
+  mainnet: {
+    userRegistry: "0xYourUserRegistry",
+    complianceHook: "0xYourComplianceHook",
+    fheVerifier: "0xYourFHEVerifier",
+    poolId: "0xYourPoolId", // Update with your actual Uniswap v4 pool ID
   },
 };
 

@@ -2,25 +2,99 @@
  * LI.FI SDK Client Wrapper
  * 
  * This file provides a clean interface to LI.FI SDK for fetching routes and executing them.
+ * 
+ * IMPORTANT: LI.FI no longer supports testnets. This client:
+ * - Validates chain IDs using getChains() before calling getRoutes()
+ * - Uses mock routes for testnets instead of calling the API
+ * - Always uses mainnet API (https://li.quest/v1)
  */
 
 import type { Route, RouteExecutionUpdate, RouteExecutionResult } from "./types";
+import { getLifiConfig } from "./config";
 
 // Dynamic import to avoid SSR issues
 let lifiSDK: any = null;
+let supportedChainIds: Set<number> | null = null;
+let configInitialized: boolean = false;
+
+// Testnet chain IDs that LI.FI doesn't support
+const TESTNET_CHAIN_IDS = new Set([
+  11155111,  // Sepolia
+  84532,     // Base Sepolia
+  421614,    // Arbitrum Sepolia
+  11155420,  // Optimism Sepolia
+]);
 
 async function getLifiSDK() {
   if (lifiSDK) return lifiSDK;
-  
+
   try {
     // Try to import @lifi/sdk
+    // LI.FI SDK v3 exports getRoutes and executeRoute as direct functions
     const lifiModule = await import("@lifi/sdk");
+    
+    // Initialize SDK config with mainnet API (testnets not supported)
+    if (!configInitialized) {
+      await getLifiConfig();
+      configInitialized = true;
+    }
+    
     lifiSDK = lifiModule;
     return lifiSDK;
   } catch (error) {
     console.warn("@lifi/sdk not installed, using mock implementation");
     return null;
   }
+}
+
+/**
+ * Get supported chain IDs from LI.FI
+ * Caches the result to avoid repeated API calls
+ */
+async function getSupportedChainIds(): Promise<Set<number>> {
+  if (supportedChainIds) return supportedChainIds;
+
+  const sdk = await getLifiSDK();
+  if (!sdk) {
+    // If SDK is not available, return empty set (will use mocks)
+    return new Set();
+  }
+
+  try {
+    const { getChains, ChainType } = sdk;
+    if (!getChains) {
+      console.warn("LI.FI SDK getChains not found");
+      return new Set();
+    }
+
+    const chains = await getChains({ chainTypes: [ChainType.EVM] });
+    supportedChainIds = new Set(chains.map((c: any) => c.id));
+    return supportedChainIds;
+  } catch (error) {
+    console.error("Failed to fetch supported chains from LI.FI:", error);
+    return new Set();
+  }
+}
+
+/**
+ * Check if a chain ID is a testnet
+ */
+function isTestnet(chainId: number): boolean {
+  return TESTNET_CHAIN_IDS.has(chainId);
+}
+
+/**
+ * Check if a chain ID is supported by LI.FI
+ */
+async function isChainSupported(chainId: number): Promise<boolean> {
+  // Testnets are never supported
+  if (isTestnet(chainId)) {
+    return false;
+  }
+
+  // Check against LI.FI's supported chains
+  const supported = await getSupportedChainIds();
+  return supported.has(chainId);
 }
 
 export interface GetRoutesParams {
@@ -35,18 +109,45 @@ export interface GetRoutesParams {
 
 /**
  * Fetch routes from LI.FI
+ * 
+ * IMPORTANT: If either fromChainId or toChainId is a testnet or not supported by LI.FI,
+ * this function will return mock routes instead of calling the API.
  */
 export async function fetchRoutes(params: GetRoutesParams): Promise<Route[]> {
   const sdk = await getLifiSDK();
-  
+
   if (!sdk) {
     // Mock implementation for demo when SDK is not available
     return getMockRoutes(params);
   }
-  
+
+  // Check if chains are supported by LI.FI
+  const fromSupported = await isChainSupported(params.fromChainId);
+  const toSupported = await isChainSupported(params.toChainId);
+
+  // If either chain is not supported (testnet or not in LI.FI's list), use mock routes
+  if (!fromSupported || !toSupported) {
+    const unsupportedChains: number[] = [];
+    if (!fromSupported) unsupportedChains.push(params.fromChainId);
+    if (!toSupported) unsupportedChains.push(params.toChainId);
+
+    console.warn(
+      `Chain(s) ${unsupportedChains.join(", ")} not supported by LI.FI. ` +
+      `LI.FI no longer supports testnets. Using mock routes for demo.`
+    );
+
+    // Return mock routes with a flag indicating this is a simulation
+    return getMockRoutes(params, true);
+  }
+
   try {
+    // LI.FI SDK v3 API: getRoutes is exported as a direct function
     const { getRoutes } = sdk;
-    const routes = await getRoutes({
+    if (!getRoutes) {
+      throw new Error("LI.FI SDK getRoutes not found");
+    }
+
+    const response = await getRoutes({
       fromChainId: params.fromChainId,
       toChainId: params.toChainId,
       fromTokenAddress: params.fromToken,
@@ -59,9 +160,21 @@ export async function fetchRoutes(params: GetRoutesParams): Promise<Route[]> {
         order: "RECOMMENDED", // or "FASTEST", "CHEAPEST"
       },
     });
-    
-    return routes.routes || [];
+
+    return response.routes || [];
   } catch (error: any) {
+    // If we get a 400 error about chain validation, it means the chain isn't supported
+    // even though it passed our initial check (edge case)
+    if (error.message?.includes("must be equal to one of the allowed values") ||
+        error.message?.includes("fromChainId") ||
+        error.message?.includes("toChainId")) {
+      console.warn(
+        `LI.FI rejected chain ID(s). Using mock routes instead. ` +
+        `Error: ${error.message}`
+      );
+      return getMockRoutes(params, true);
+    }
+
     console.error("Error fetching LI.FI routes:", error);
     throw new Error(`Failed to fetch routes: ${error.message}`);
   }
@@ -78,28 +191,43 @@ export async function executeRoute(
   }
 ): Promise<RouteExecutionResult> {
   const sdk = await getLifiSDK();
-  
+
   if (!sdk) {
     // Mock implementation
     return executeMockRoute(route, options);
   }
-  
+
   try {
+    const signer = await options.getSigner();
+
+    // LI.FI SDK v3 API: executeRoute is exported as a direct function
     const { executeRoute: lifiExecuteRoute } = sdk;
-    
+    if (!lifiExecuteRoute) {
+      throw new Error("LI.FI SDK executeRoute not found");
+    }
+
+    // Execute route with update callback
     const result = await lifiExecuteRoute({
       route,
-      signer: await options.getSigner(),
+      signer,
       updateCallback: options.onUpdate,
     });
-    
+
+    // Extract step receipts from result
+    const stepReceipts = route.steps.map((step, index) => ({
+      stepId: step.id,
+      txHash: result.stepReceipts?.[index]?.txHash || "",
+      chainId: step.action.toChainId,
+      status: result.stepReceipts?.[index]?.status === "DONE" ? "success" as const : "failed" as const,
+    }));
+
     return {
       route,
-      stepReceipts: result.stepReceipts || [],
-      finalTxHash: result.finalTxHash || "",
-      success: result.success || false,
-      receivedAmount: result.receivedAmount,
-      receivedAmountUSD: result.receivedAmountUSD,
+      stepReceipts,
+      finalTxHash: stepReceipts[stepReceipts.length - 1]?.txHash || "",
+      success: result.status === "DONE",
+      receivedAmount: result.toAmount || route.toAmount,
+      receivedAmountUSD: result.toAmountUSD || route.toAmountUSD,
     };
   } catch (error: any) {
     console.error("Error executing LI.FI route:", error);
@@ -136,8 +264,8 @@ export function formatSteps(route: Route): Array<{
   }));
 }
 
-// Mock implementations for when SDK is not available
-function getMockRoutes(params: GetRoutesParams): Route[] {
+// Mock implementations for when SDK is not available or testnets are used
+function getMockRoutes(params: GetRoutesParams, isSimulation: boolean = false): Route[] {
   return [
     {
       id: "mock-route-1",
@@ -232,7 +360,7 @@ function getMockRoutes(params: GetRoutesParams): Route[] {
           },
         },
       ],
-      tags: ["recommended"],
+      tags: isSimulation ? ["simulation", "demo"] : ["recommended"],
     },
   ] as Route[];
 }
@@ -245,7 +373,7 @@ async function executeMockRoute(
   }
 ): Promise<RouteExecutionResult> {
   const stepReceipts: RouteExecutionResult["stepReceipts"] = [];
-  
+
   for (const step of route.steps) {
     if (options.onUpdate) {
       options.onUpdate({
@@ -258,12 +386,12 @@ async function executeMockRoute(
         },
       });
     }
-    
+
     // Simulate execution delay
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    
+
     const txHash = `0x${Math.random().toString(16).slice(2).padStart(64, "0")}`;
-    
+
     if (options.onUpdate) {
       options.onUpdate({
         route,
@@ -276,7 +404,7 @@ async function executeMockRoute(
         },
       });
     }
-    
+
     stepReceipts.push({
       stepId: step.id,
       txHash,
@@ -284,7 +412,7 @@ async function executeMockRoute(
       status: "success",
     });
   }
-  
+
   return {
     route,
     stepReceipts,

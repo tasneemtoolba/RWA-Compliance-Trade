@@ -1,5 +1,5 @@
 import { Signer, TypedDataDomain } from "ethers";
-import { FhevmInstance } from "fhevmjs";
+import type { FhevmInstance } from "./fhevmTypes";
 
 const EBOOL_T = 0;
 const EUINT4_T = 1;
@@ -160,8 +160,11 @@ export async function reencryptEbytes256(
 }
 
 /**
- * @dev This function is to reencrypt handles.
+ * @dev This function is to reencrypt handles using the relayer SDK.
  *      It does not verify types.
+ * 
+ * Uses the relayer SDK's decrypt method to decrypt the handle,
+ * then re-encrypts it for the user.
  */
 async function reencryptHandle(
   signer: Signer,
@@ -169,22 +172,28 @@ async function reencryptHandle(
   handle: bigint,
   contractAddress: string,
 ): Promise<bigint> {
-  const { publicKey, privateKey } = instance.generateKeypair();
-  const eip712 = instance.createEIP712(publicKey, contractAddress);
+  // Get the user's address
+  const userAddress = await signer.getAddress();
+  
+  // Generate public key and EIP712 signature for decryption
+  const { publicKey, eip712 } = instance.generatePublicKey({
+    verifyingContract: contractAddress as `0x${string}`,
+  });
+  
+  // Sign the EIP712 message
   const signature = await signer.signTypedData(
-    eip712.domain as TypedDataDomain,
-    { Reencrypt: eip712.types.Reencrypt },
-    eip712.message as Record<string, string>,
+    eip712.domain,
+    eip712.types,
+    eip712.message
   );
-
-  const reencryptedHandle = await instance.reencrypt(
-    handle,
-    privateKey,
+  
+  // Decrypt the handle
+  const decrypted = instance.decrypt(contractAddress as `0x${string}`, handle, {
     publicKey,
-    signature.replace("0x", ""),
-    contractAddress,
-    await signer.getAddress(),
-  );
-
-  return BigInt(reencryptedHandle.toString());
+    signature,
+  });
+  
+  // Return the decrypted value as bigint
+  // Note: The relayer SDK decrypt method returns the plaintext value
+  return BigInt(decrypted);
 }

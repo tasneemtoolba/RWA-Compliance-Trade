@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { getInstance } from "@/lib/fhevm/fhevmjs";
+import type { FhevmInstance } from "@/lib/fhevm/fhevmTypes";
 
 type EncryptedAmount = {
-  handles: Uint8Array[];
+  handles: bigint[];
   inputProof: Uint8Array;
 };
 
-export const useEncrypt = () => {
+export const useEncrypt = (instance: FhevmInstance | undefined) => {
   const [isEncrypting, setIsEncrypting] = useState(false);
   const [encryptedAmount, setEncryptedAmount] =
     useState<EncryptedAmount | null>(null);
@@ -17,19 +17,21 @@ export const useEncrypt = () => {
   const [userAddress, setUserAddress] = useState<`0x${string}` | null>(null);
 
   useEffect(() => {
-    if (!isEncrypting || !contractAddress || !userAddress) return;
+    if (!isEncrypting || !contractAddress || !userAddress || !instance) return;
     async function createEncryptedInput() {
       try {
-        const instance = getInstance();
         // wait for next javascript event loop to enable rendering
         await new Promise((resolve) => setTimeout(resolve, 0));
-        const result = await instance
-          .createEncryptedInput(
-            contractAddress as string,
-            userAddress as string,
-          )
-          .add64(BigInt(amount))
-          .encrypt();
+        
+        // Use the correct createEncryptedInput API from relayer SDK
+        const input = instance.createEncryptedInput(contractAddress, userAddress);
+        input.add64(amount);
+        const encrypted = await input.encrypt();
+
+        const result: EncryptedAmount = {
+          handles: encrypted.handles,
+          inputProof: encrypted.inputProof,
+        };
 
         setEncryptedAmount(result);
       } catch (error) {
@@ -40,13 +42,16 @@ export const useEncrypt = () => {
       }
     }
     createEncryptedInput();
-  }, [isEncrypting, amount, contractAddress, userAddress]);
+  }, [isEncrypting, amount, contractAddress, userAddress, instance]);
 
   async function encryptAmount(
     contractAddress: `0x${string}`,
     userAddress: `0x${string}`,
     amount: bigint,
   ) {
+    if (!instance) {
+      throw new Error("FHEVM instance not available");
+    }
     setContractAddress(contractAddress);
     setUserAddress(userAddress);
     setAmount(amount);

@@ -1,8 +1,8 @@
 "use client";
 
 import type { Route } from "@/lib/lifi/types";
-import { CHAIN_NAMES } from "@/lib/lifi/constants";
-import { CheckCircle2, Clock, DollarSign } from "lucide-react";
+import { CHAIN_NAMES, isTestnetChain } from "@/lib/lifi/constants";
+import { CheckCircle2, Clock, DollarSign, AlertTriangle } from "lucide-react";
 
 interface RouteOptionsProps {
   routes: Route[];
@@ -18,9 +18,32 @@ export function RouteOptions({ routes, selectedRoute, onSelectRoute }: RouteOpti
       </div>
     );
   }
+
+  // Check if any route is a simulation (testnet)
+  const hasSimulation = routes.some(
+    (route) =>
+      route.tags?.includes("simulation") ||
+      route.tags?.includes("demo") ||
+      isTestnetChain(route.fromChainId) ||
+      isTestnetChain(route.toChainId)
+  );
   
   return (
     <div className="space-y-3">
+      {hasSimulation && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <div className="font-medium mb-1">Simulation Mode</div>
+              <div className="text-amber-700">
+                LI.FI no longer supports testnets. These routes are simulated for demo purposes.
+                For real routes, switch to mainnet chains (Base, Arbitrum, Optimism, or Ethereum).
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="text-sm font-medium text-slate-700">
         Available Routes ({routes.length})
       </div>
@@ -28,6 +51,7 @@ export function RouteOptions({ routes, selectedRoute, onSelectRoute }: RouteOpti
         const isSelected = selectedRoute?.id === route.id;
         const stepCount = route.steps.length;
         const isRecommended = route.tags?.includes("RECOMMENDED") || route.tags?.includes("recommended");
+        const isSimulation = route.tags?.includes("simulation") || route.tags?.includes("demo");
         
         return (
           <button
@@ -42,7 +66,12 @@ export function RouteOptions({ routes, selectedRoute, onSelectRoute }: RouteOpti
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  {isRecommended && (
+                  {isSimulation && (
+                    <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
+                      Simulation
+                    </span>
+                  )}
+                  {isRecommended && !isSimulation && (
                     <span className="text-xs font-medium text-primary-brand bg-primary-brand/10 px-2 py-0.5 rounded">
                       Recommended
                     </span>

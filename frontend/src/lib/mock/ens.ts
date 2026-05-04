@@ -7,12 +7,12 @@
  * Reverse resolve wallet to ENS name
  */
 export function reverseResolve(wallet: string): string | null {
-  // For demo: return pybast.eth for certain patterns, null otherwise
+  // For demo: return vitalik.eth for certain patterns, null otherwise
   const walletLower = wallet.toLowerCase();
   
-  // Return pybast.eth for wallets ending in certain patterns (demo)
+  // Return vitalik.eth for wallets ending in certain patterns (demo)
   if (walletLower.endsWith("a") || walletLower.endsWith("b") || walletLower.endsWith("c")) {
-    return "pybast.eth";
+    return "vitalik.eth";
   }
   
   // Return other demo names for variety
@@ -30,8 +30,8 @@ export function getAvatar(name: string): string | null {
   // For demo: return a gradient placeholder or static image
   // In production, this would fetch from ENS resolver
   
-  if (name === "pybast.eth") {
-    // Return profile.png for pybast.eth
+  if (name === "vitalik.eth") {
+    // Return profile.png for vitalik.eth
     return "/profile.png";
   }
   
@@ -64,7 +64,7 @@ export function resolve(name: string): string | null {
   // For demo: return a deterministic address based on name
   // In production, this would query ENS resolver
   
-  if (name === "pybast.eth") {
+  if (name === "vitalik.eth") {
     return "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0"; // Example address
   }
   

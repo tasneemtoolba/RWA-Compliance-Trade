@@ -6,6 +6,7 @@ import { WagmiProvider, createConfig, http } from "wagmi";
 import { sepolia, mainnet, base, arbitrum } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { injected, walletConnect, coinbaseWallet } from "wagmi/connectors";
+import { FhevmProvider } from "@/providers/FhevmProvider";
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "YOUR_WALLETCONNECT_PROJECT_ID";
 
@@ -37,7 +38,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>{children}</RainbowKitProvider>
+        <RainbowKitProvider>
+          <FhevmProvider>
+            {children}
+          </FhevmProvider>
+        </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

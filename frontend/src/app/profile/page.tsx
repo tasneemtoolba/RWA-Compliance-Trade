@@ -26,7 +26,7 @@ export default function ProfilePage() {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Default issuer ENS name
-  const ISSUER_ENS_NAME = "pybast.eth";
+  const ISSUER_ENS_NAME = "vitalik.eth";
 
   // Use wagmi hooks for ENS resolution
   const { data: userENS } = useEnsName({ address: address || undefined });

@@ -1,7 +1,7 @@
 import { createPublicClient, http } from "viem";
 import { mainnet, sepolia } from "viem/chains";
 import { normalize } from "viem/ens";
-import { getEnsText, setEnsText } from "viem/actions";
+import { getEnsText } from "viem/actions";
 import { formatAddress } from "./helper";
 
 export type Mode = "demo" | "production";

@@ -66,7 +66,7 @@ function normalizeAddress(address: string): string {
 export async function fakeTxHash(input: string): Promise<string> {
   const timestamp = Date.now().toString();
   const combined = input + timestamp;
-  
+
   // Use Web Crypto API if available
   if (typeof window !== "undefined" && window.crypto && window.crypto.subtle) {
     try {
@@ -80,7 +80,7 @@ export async function fakeTxHash(input: string): Promise<string> {
       // Fallback to simple hash
     }
   }
-  
+
   // Simple fallback hash
   let hash = 0;
   for (let i = 0; i < combined.length; i++) {
@@ -104,16 +104,16 @@ export async function selfRegister(
   await delay(800);
   const state = loadState();
   const walletLower = normalizeAddress(wallet);
-  
+
   if (state.profiles[walletLower]) {
     throw new Error("Already registered");
   }
-  
+
   state.profiles[walletLower] = {
     bmp: encryptedProfileBitMap,
     expiry,
   };
-  
+
   saveState(state);
   return await fakeTxHash(`register_${wallet}_${encryptedProfileBitMap}`);
 }
@@ -126,16 +126,16 @@ export async function selfUpdateProfile(
   await delay(800);
   const state = loadState();
   const walletLower = normalizeAddress(wallet);
-  
+
   if (!state.profiles[walletLower]) {
     throw new Error("Not registered");
   }
-  
+
   state.profiles[walletLower] = {
     bmp: encryptedProfileBitMap,
     expiry,
   };
-  
+
   saveState(state);
   return await fakeTxHash(`update_${wallet}_${encryptedProfileBitMap}`);
 }
@@ -144,11 +144,11 @@ export function getProfile(wallet: string): { encryptedProfileBitMap: string; ex
   const state = loadState();
   const walletLower = normalizeAddress(wallet);
   const profile = state.profiles[walletLower];
-  
+
   if (!profile) {
     return { encryptedProfileBitMap: "", expiry: 0, exists: false };
   }
-  
+
   return {
     encryptedProfileBitMap: profile.bmp,
     expiry: profile.expiry,
@@ -157,10 +157,18 @@ export function getProfile(wallet: string): { encryptedProfileBitMap: string; ex
 }
 
 export function getUserIdByWallet(wallet: string): string {
-  // Simple hash-based userId
+  const state = loadState();
+  const walletLower = normalizeAddress(wallet);
+
+  // IMPORTANT: match onchain semantics - return 0x000...000 when not registered
+  if (!state.profiles[walletLower]) {
+    return `0x${"0".repeat(64)}`; // "no user"
+  }
+
+  // Stable id when registered
   let hash = 0;
-  for (let i = 0; i < wallet.length; i++) {
-    const char = wallet.charCodeAt(i);
+  for (let i = 0; i < walletLower.length; i++) {
+    const char = walletLower.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
     hash = hash & hash;
   }
@@ -185,18 +193,18 @@ export function getPoolRule(poolId: string): string {
 export function creditBalance(wallet: string, tokenSymbol: string, amount: number): void {
   const state = loadState();
   const walletLower = normalizeAddress(wallet);
-  
+
   if (!state.balances[walletLower]) {
     state.balances[walletLower] = { USDC: 0, ETH: 0, gGOLD: 0 };
   }
-  
+
   const token = tokenSymbol.toUpperCase() as "USDC" | "ETH" | "GOLD";
   if (token === "GOLD") {
     state.balances[walletLower].gGOLD += amount;
   } else {
     state.balances[walletLower][token] += amount;
   }
-  
+
   saveState(state);
 }
 
@@ -209,18 +217,18 @@ export function getBalances(wallet: string): { USDC: number; ETH: number; gGOLD:
 export function debitBalance(wallet: string, tokenSymbol: string, amount: number): void {
   const state = loadState();
   const walletLower = normalizeAddress(wallet);
-  
+
   if (!state.balances[walletLower]) {
     state.balances[walletLower] = { USDC: 0, ETH: 0, gGOLD: 0 };
   }
-  
+
   const token = tokenSymbol.toUpperCase() as "USDC" | "ETH" | "GOLD";
   if (token === "GOLD") {
     state.balances[walletLower].gGOLD = Math.max(0, state.balances[walletLower].gGOLD - amount);
   } else {
     state.balances[walletLower][token] = Math.max(0, state.balances[walletLower][token] - amount);
   }
-  
+
   saveState(state);
 }
 
@@ -236,11 +244,11 @@ export function addHookAuditEntry(
 ): void {
   const state = loadState();
   const walletLower = normalizeAddress(wallet);
-  
+
   if (!state.hookAudit[walletLower]) {
     state.hookAudit[walletLower] = [];
   }
-  
+
   state.hookAudit[walletLower].unshift({
     ts: Date.now(),
     poolId,
@@ -250,12 +258,12 @@ export function addHookAuditEntry(
     ruleMask,
     txHash,
   });
-  
+
   // Keep only last 20 entries
   if (state.hookAudit[walletLower].length > 20) {
     state.hookAudit[walletLower] = state.hookAudit[walletLower].slice(0, 20);
   }
-  
+
   saveState(state);
 }
 

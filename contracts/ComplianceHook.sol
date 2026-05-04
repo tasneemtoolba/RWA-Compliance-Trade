@@ -1,6 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+/**
+ * @title ComplianceHook
+ * @notice Simplified compliance hook for demo/proof-of-concept
+ * 
+ * This contract provides:
+ * - Eligibility checking via hook.check() for frontend
+ * - Pool rule mask configuration per poolId
+ * - Integration with UserRegistry and FHEVerifier
+ * 
+ * For full Uniswap v4 integration:
+ * - Deploy hook to a mined address (flag 1<<7 for beforeSwap permission)
+ * - Inherit from BaseHook (v4-periphery)
+ * - Implement proper beforeSwap hook interface
+ * - Create pool with this hook address
+ * 
+ * Current setup works for:
+ * - Frontend eligibility checks
+ * - Demo compliance gating
+ * - Production-ready registry (supports bytes ciphertext for real FHE)
+ */
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IUserRegistry.sol";
 import "./interfaces/IFHEVerifier.sol";

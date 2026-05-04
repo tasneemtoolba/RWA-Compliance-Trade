@@ -1,4 +1,5 @@
 require("@nomicfoundation/hardhat-toolbox");
+require("@fhevm/hardhat-plugin");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -16,5 +17,8 @@ module.exports = {
     tests: "./test",
     cache: "./cache",
     artifacts: "./artifacts"
+  },
+  fhevm: {
+    // FHEVM plugin configuration
   }
 };

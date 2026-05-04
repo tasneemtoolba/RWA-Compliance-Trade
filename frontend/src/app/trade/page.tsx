@@ -12,8 +12,6 @@ import Image from "next/image";
 import { CheckCircle2, XCircle, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DemoBanner } from "@/components/DemoBanner";
-import { formatAddress } from "@/lib/helper";
 
 const reasonCodeMap: Record<string, number> = {
   ELIGIBLE: 0,
@@ -108,7 +106,6 @@ export default function TradePage() {
             Run a hook check to see if swaps would be allowed; simulate swap outcomes.
           </p>
         </div>
-        <DemoBanner />
         <div className="rounded-2xl border bg-white p-8 shadow-sm text-center">
           <p className="text-slate-600 mb-4">Connect wallet to trade</p>
           <Button className="btn-primary">Connect Wallet</Button>
@@ -126,8 +123,6 @@ export default function TradePage() {
           Run a hook check to see if swaps would be allowed; simulate swap outcomes.
         </p>
       </div>
-
-      <DemoBanner />
 
       {/* Two Cards Side by Side */}
       <div className="grid gap-6 md:grid-cols-2">

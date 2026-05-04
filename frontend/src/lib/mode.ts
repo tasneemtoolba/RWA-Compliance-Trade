@@ -6,8 +6,8 @@ export const MODE_CONFIG = {
   demo: {
     chain: sepolia,
     name: "Demo (Sepolia)",
-    description: "Privacy + hook gating demo",
-    lifiEnabled: false,
+    description: "Privacy + hook gating demo with LI.FI testnet support",
+    lifiEnabled: true, // LI.FI supports Sepolia testnets
   },
   production: {
     chain: mainnet,

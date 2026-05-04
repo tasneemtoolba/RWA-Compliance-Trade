@@ -6,8 +6,8 @@ import "./interfaces/IUserRegistry.sol";
 
 contract UserRegistry is IUserRegistry, Ownable {
     struct Profile {
-        bytes32 encryptedProfileBitMap; // encrypted bitmap (bytes32 for demo, can be bytes for real FHE)
-        uint64 expiry;                  // unix seconds
+        bytes ciphertext; // encrypted bitmap ciphertext (opaque, supports real FHE)
+        uint64 expiry;   // unix seconds
         bool exists;
     }
 
@@ -24,8 +24,9 @@ contract UserRegistry is IUserRegistry, Ownable {
         bytes32 userId = keccak256(abi.encodePacked(msg.sender));
         _walletToUserId[msg.sender] = userId;
 
+        // Convert bytes32 to bytes for storage (supports both demo and real FHE)
         profiles[msg.sender] = Profile({
-            encryptedProfileBitMap: encryptedProfileBitMap,
+            ciphertext: abi.encodePacked(encryptedProfileBitMap),
             expiry: expiry,
             exists: true
         });
@@ -39,7 +40,7 @@ contract UserRegistry is IUserRegistry, Ownable {
         require(userId != bytes32(0) && profiles[msg.sender].exists, "Not registered");
         require(expiry > uint64(block.timestamp), "Expiry in past");
 
-        profiles[msg.sender].encryptedProfileBitMap = encryptedProfileBitMap;
+        profiles[msg.sender].ciphertext = abi.encodePacked(encryptedProfileBitMap);
         profiles[msg.sender].expiry = expiry;
         emit SelfProfileUpdated(msg.sender, userId, expiry);
     }
@@ -48,46 +49,60 @@ contract UserRegistry is IUserRegistry, Ownable {
     function getUserProfileByWallet(address wallet) external view returns (bytes32 encryptedProfileBitMap, uint64 expiry) {
         Profile storage p = profiles[wallet];
         require(p.exists, "Wallet not registered");
-        return (p.encryptedProfileBitMap, p.expiry);
+        // Convert bytes back to bytes32 for compatibility
+        require(p.ciphertext.length >= 32, "Invalid ciphertext");
+        assembly {
+            encryptedProfileBitMap := mload(add(p.ciphertext, 32))
+        }
+        return (encryptedProfileBitMap, p.expiry);
     }
 
-    // Legacy function for compatibility (maps to new structure)
+    // Main function for frontend (accepts bytes, supports real FHE ciphertexts)
     function setMyEncryptedProfile(bytes calldata ciphertext, uint64 expiry) external {
-        require(ciphertext.length >= 32, "Ciphertext too short");
-        // Extract first 32 bytes as bytes32
-        bytes32 bitmap;
-        assembly {
-            bitmap := calldataload(ciphertext.offset)
-        }
-        if (profiles[msg.sender].exists) {
-            selfUpdateProfile(bitmap, expiry);
+        require(ciphertext.length > 0, "Empty ciphertext");
+        require(expiry > uint64(block.timestamp), "Expiry in past");
+
+        bytes32 userId;
+        if (!profiles[msg.sender].exists) {
+            userId = keccak256(abi.encodePacked(msg.sender));
+            _walletToUserId[msg.sender] = userId;
+            emit SelfRegistered(msg.sender, userId, expiry);
         } else {
-            selfRegister(bitmap, expiry);
+            userId = _walletToUserId[msg.sender];
+            emit SelfProfileUpdated(msg.sender, userId, expiry);
         }
+
+        profiles[msg.sender] = Profile({
+            ciphertext: ciphertext,
+            expiry: expiry,
+            exists: true
+        });
+
+        emit ProfileSet(msg.sender, expiry);
     }
 
     // Owner-only functions (for admin)
     function setEncryptedProfileFor(address user, bytes calldata ciphertext, uint64 expiry) external onlyOwner {
-        require(ciphertext.length >= 32, "Ciphertext too short");
-        // Extract first 32 bytes as bytes32
-        bytes32 bitmap;
-        assembly {
-            bitmap := calldataload(ciphertext.offset)
-        }
+        require(ciphertext.length > 0, "Empty ciphertext");
+        require(expiry > uint64(block.timestamp), "Expiry in past");
+
+        bytes32 userId;
         if (!profiles[user].exists) {
-            bytes32 userId = keccak256(abi.encodePacked(user));
+            userId = keccak256(abi.encodePacked(user));
             _walletToUserId[user] = userId;
-            profiles[user] = Profile({
-                encryptedProfileBitMap: bitmap,
-                expiry: expiry,
-                exists: true
-            });
             emit SelfRegistered(user, userId, expiry);
         } else {
-            profiles[user].encryptedProfileBitMap = bitmap;
-            profiles[user].expiry = expiry;
-            emit SelfProfileUpdated(user, _walletToUserId[user], expiry);
+            userId = _walletToUserId[user];
+            emit SelfProfileUpdated(user, userId, expiry);
         }
+
+        profiles[user] = Profile({
+            ciphertext: ciphertext,
+            expiry: expiry,
+            exists: true
+        });
+
+        emit ProfileSet(user, expiry);
     }
 
     function clearProfile(address user) external {
@@ -101,8 +116,8 @@ contract UserRegistry is IUserRegistry, Ownable {
     function getEncryptedProfile(address user) external view returns (bytes memory ciphertext, uint64 expiry) {
         Profile storage p = profiles[user];
         if (!p.exists) return ("", 0);
-        // Convert bytes32 to bytes for compatibility
-        ciphertext = abi.encodePacked(p.encryptedProfileBitMap);
+        // Return the stored ciphertext
+        ciphertext = p.ciphertext;
         return (ciphertext, p.expiry);
     }
 

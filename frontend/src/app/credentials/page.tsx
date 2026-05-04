@@ -39,24 +39,37 @@ export default function CredentialsPage() {
 
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
         {profile ? (
-          <div className="space-y-4">
-            <div>
-              <div className="text-sm text-slate-600">Ciphertext</div>
-              <div className="mt-1 font-mono text-xs break-all bg-slate-50 p-3 rounded">
-                {profile[0]}
+          (() => {
+            const profileData = profile as [string, bigint] | undefined;
+            if (!profileData) {
+              return (
+                <div className="text-center py-8 text-slate-500">
+                  No credential found. <Link href="/verify" className="text-link hover:opacity-80">Get Verified</Link>
+                </div>
+              );
+            }
+            const [ciphertext, expiry] = profileData;
+            return (
+              <div className="space-y-4">
+                <div>
+                  <div className="text-sm text-slate-600">Ciphertext</div>
+                  <div className="mt-1 font-mono text-xs break-all bg-slate-50 p-3 rounded">
+                    {ciphertext}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm text-slate-600">Expiry</div>
+                  <div className="mt-1 font-medium">
+                    {new Date(Number(expiry) * 1000).toLocaleString()}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm text-slate-600">Ciphertext Length</div>
+                  <div className="mt-1 font-medium">{ciphertext.length} bytes</div>
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="text-sm text-slate-600">Expiry</div>
-              <div className="mt-1 font-medium">
-                {new Date(Number(profile[1]) * 1000).toLocaleString()}
-              </div>
-            </div>
-            <div>
-              <div className="text-sm text-slate-600">Ciphertext Length</div>
-              <div className="mt-1 font-medium">{profile[0].length} bytes</div>
-            </div>
-          </div>
+            );
+          })()
         ) : (
           <div className="text-center py-8 text-slate-500">
             No credential found. <Link href="/verify" className="text-link hover:opacity-80">Get Verified</Link>

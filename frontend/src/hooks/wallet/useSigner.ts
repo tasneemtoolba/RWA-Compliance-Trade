@@ -1,27 +1,28 @@
 import { useState, useEffect } from "react";
 import { Signer } from "ethers";
-import { getEthersSigner } from "@/lib/wagmi-adapter/client-to-signer";
-import { useConfig } from "wagmi";
+import { clientToSigner } from "@/lib/wagmi-adapter/client-to-signer";
+import { useWalletClient } from "wagmi";
 
 export function useSigner() {
-  const config = useConfig();
+  const { data: walletClient } = useWalletClient();
   const [signer, setSigner] = useState<Signer | null>(null);
 
   useEffect(() => {
     const initSigner = async () => {
       try {
-        const s = await getEthersSigner(config);
-        if (!s) {
-          console.warn("Failed to initialize signer");
+        if (!walletClient) {
+          setSigner(null);
           return;
         }
+        const s = clientToSigner(walletClient);
         setSigner(s);
       } catch (error) {
         console.error("Error initializing signer:", error);
+        setSigner(null);
       }
     };
     initSigner();
-  }, [config]);
+  }, [walletClient]);
 
   return { signer };
 }

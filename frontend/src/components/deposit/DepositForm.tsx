@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useAccount, useEnsName, useEnsText } from "wagmi";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SOURCE_CHAINS, DEFAULT_TOKENS, DESTINATION_CONFIG } from "@/lib/lifi/constants";
+import { DEFAULT_TOKENS, DESTINATION_CONFIG, CHAIN_NAMES } from "@/lib/lifi/constants";
 import { ENS_KEYS } from "@/lib/ens/keys";
 import { normalize } from "viem/ens";
 
@@ -16,6 +16,7 @@ interface DepositFormProps {
   onFromTokenChange: (token: string) => void;
   onAmountChange: (amount: string) => void;
   mode: "demo" | "production";
+  sourceChains: Array<{ id: number; name: string; symbol: string }>;
 }
 
 export function DepositForm({
@@ -26,6 +27,7 @@ export function DepositForm({
   onFromTokenChange,
   onAmountChange,
   mode,
+  sourceChains,
 }: DepositFormProps) {
   const { address } = useAccount();
   const { data: userENS } = useEnsName({ address: address || undefined });
@@ -86,7 +88,7 @@ export function DepositForm({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {SOURCE_CHAINS.map((chain) => (
+            {sourceChains.map((chain) => (
               <SelectItem key={chain.id} value={chain.id.toString()}>
                 {chain.name}
               </SelectItem>
@@ -142,10 +144,10 @@ export function DepositForm({
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
         <div className="text-sm text-slate-600 mb-1">Destination (Fixed)</div>
         <div className="font-medium">
-          {DESTINATION_CONFIG.chainId === 11155111 ? "Sepolia" : "Ethereum"} - {DESTINATION_CONFIG.tokenSymbol}
+          {mode === "demo" ? "Sepolia" : "Ethereum"} - {DESTINATION_CONFIG.tokenSymbol}
         </div>
         <div className="text-xs text-slate-500 mt-1">
-          Funds will arrive on {DESTINATION_CONFIG.chainId === 11155111 ? "Sepolia" : "Ethereum"} for trading
+          Funds will arrive on {mode === "demo" ? "Sepolia" : "Ethereum"} for trading
         </div>
       </div>
     </div>
